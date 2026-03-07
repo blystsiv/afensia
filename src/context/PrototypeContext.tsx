@@ -9,23 +9,24 @@ import {
   type ReactNode,
 } from 'react'
 import {
-  activeLanguages,
   analyticsSnapshots,
   defaultDashboardPreferences,
-  futureLanguages,
   initialBalance,
   initialCompany,
   initialEmployees,
   initialModules,
   initialOnboardingDraft,
+  pricingPlans,
 } from '../data/mockData'
-import { copyText, createInviteLink, inferNameFromEmail } from '../lib/format'
+import { createInviteLink, copyText, inferNameFromEmail } from '../lib/format'
+import { languageMeta, supportedLanguages, translate, type TranslationKey } from '../lib/i18n'
 import type {
   AccountBalance,
   CompanyProfile,
   DashboardPreferences,
   Employee,
   OnboardingDraft,
+  PricingPlan,
   SecurityModule,
   ThemeMode,
   ToastMessage,
@@ -54,6 +55,7 @@ interface PrototypeContextValue {
   employees: Employee[]
   modules: SecurityModule[]
   balance: AccountBalance
+  pricingPlans: PricingPlan[]
   onboardingDraft: OnboardingDraft
   onboardingCompleted: boolean
   dashboardPreferences: DashboardPreferences
@@ -61,8 +63,7 @@ interface PrototypeContextValue {
   themeMode: ThemeMode
   uiLanguage: UILanguage
   direction: 'ltr' | 'rtl'
-  activeLanguages: typeof activeLanguages
-  futureLanguages: typeof futureLanguages
+  supportedLanguages: typeof supportedLanguages
   analyticsSnapshots: typeof analyticsSnapshots
   registerBusiness: (payload: RegistrationPayload) => void
   completeOnboarding: (draft: OnboardingDraft) => void
@@ -73,18 +74,11 @@ interface PrototypeContextValue {
   saveInvitationSettings: (payload: InvitationSettingsPayload) => void
   saveInterfacePreferences: (preferences: InterfacePreferences) => void
   saveDashboardPreferences: (preferences: DashboardPreferences) => void
-  toggleModule: (moduleId: string) => void
-  enableCoreModules: () => void
   simulateDangerAction: (action: 'delete-account') => void
   copyInviteValue: (value: string, title?: string, body?: string) => Promise<void>
   showToast: (title: string, body: string, tone?: ToastTone) => void
   dismissToast: (toastId: string) => void
-}
-
-const languageMeta: Record<UILanguage, { label: string; dir: 'ltr' | 'rtl' }> = {
-  en: { label: 'English', dir: 'ltr' },
-  fr: { label: 'French', dir: 'ltr' },
-  hi: { label: 'Hindi', dir: 'ltr' },
+  t: (key: TranslationKey, vars?: Record<string, string | number>) => string
 }
 
 const PrototypeContext = createContext<PrototypeContextValue | null>(null)
@@ -101,8 +95,8 @@ function createToast(title: string, body: string, tone: ToastTone): ToastMessage
 export function PrototypeProvider({ children }: { children: ReactNode }) {
   const [company, setCompany] = useState(initialCompany)
   const [employees, setEmployees] = useState(initialEmployees)
-  const [modules, setModules] = useState(initialModules)
-  const [balance] = useState(initialBalance)
+  const [modules] = useState(initialModules)
+  const [balance, setBalance] = useState(initialBalance)
   const [toasts, setToasts] = useState<ToastMessage[]>([])
   const [onboardingDraft, setOnboardingDraft] = useState(initialOnboardingDraft)
   const [onboardingCompleted, setOnboardingCompleted] = useState(true)
@@ -114,6 +108,11 @@ export function PrototypeProvider({ children }: { children: ReactNode }) {
   const enabledModuleIds = useMemo(
     () => modules.filter((module) => module.enabled).map((module) => module.id),
     [modules],
+  )
+
+  const t = useCallback(
+    (key: TranslationKey, vars?: Record<string, string | number>) => translate(uiLanguage, key, vars),
+    [uiLanguage],
   )
 
   useEffect(() => {
@@ -239,11 +238,7 @@ export function PrototypeProvider({ children }: { children: ReactNode }) {
     (preferences: InterfacePreferences) => {
       setUiLanguage(preferences.language)
       setThemeMode(preferences.theme)
-      pushToast(
-        'Preferences saved',
-        `${languageMeta[preferences.language].label} and ${preferences.theme} mode applied.`,
-        'success',
-      )
+      pushToast('Preferences saved', `${languageMeta[preferences.language].label} and ${preferences.theme} mode applied.`, 'success')
     },
     [pushToast],
   )
@@ -255,45 +250,6 @@ export function PrototypeProvider({ children }: { children: ReactNode }) {
     },
     [pushToast],
   )
-
-  const toggleModule = useCallback(
-    (moduleId: string) => {
-      let nextMessage = 'Module updated'
-      setModules((current) =>
-        current.map((module) => {
-          if (module.id !== moduleId) {
-            return module
-          }
-
-          if (module.status === 'Preview') {
-            nextMessage = `${module.name} is marked as future-ready.`
-            return module
-          }
-
-          const enabled = !module.enabled
-          nextMessage = enabled ? `${module.name} enabled.` : `${module.name} disabled.`
-          return {
-            ...module,
-            enabled,
-            status: enabled ? 'Enabled' : 'Disabled',
-          }
-        }),
-      )
-      pushToast('Module status changed', nextMessage, 'info')
-    },
-    [pushToast],
-  )
-
-  const enableCoreModules = useCallback(() => {
-    setModules((current) =>
-      current.map((module) =>
-        module.tier === 'Core'
-          ? { ...module, enabled: true, status: 'Enabled' }
-          : module,
-      ),
-    )
-    pushToast('Core modules enabled', 'Core protection modules are now active.', 'success')
-  }, [pushToast])
 
   const completeOnboarding = useCallback(
     (draft: OnboardingDraft) => {
@@ -312,6 +268,7 @@ export function PrototypeProvider({ children }: { children: ReactNode }) {
           inviteEmployee(email)
         }
       })
+      setBalance((current) => ({ ...current, planId: draft.selectedPlan }))
       setThemeMode(draft.theme)
       setUiLanguage(draft.language)
       setOnboardingDraft(draft)
@@ -337,6 +294,7 @@ export function PrototypeProvider({ children }: { children: ReactNode }) {
       employees,
       modules,
       balance,
+      pricingPlans,
       onboardingDraft,
       onboardingCompleted,
       dashboardPreferences,
@@ -344,8 +302,7 @@ export function PrototypeProvider({ children }: { children: ReactNode }) {
       themeMode,
       uiLanguage,
       direction,
-      activeLanguages,
-      futureLanguages,
+      supportedLanguages,
       analyticsSnapshots,
       registerBusiness,
       completeOnboarding,
@@ -356,12 +313,11 @@ export function PrototypeProvider({ children }: { children: ReactNode }) {
       saveInvitationSettings,
       saveInterfacePreferences,
       saveDashboardPreferences,
-      toggleModule,
-      enableCoreModules,
       simulateDangerAction,
       copyInviteValue,
       showToast: pushToast,
       dismissToast,
+      t,
     }),
     [
       balance,
@@ -386,10 +342,9 @@ export function PrototypeProvider({ children }: { children: ReactNode }) {
       pushToast,
       themeMode,
       toasts,
-      toggleModule,
       uiLanguage,
-      enableCoreModules,
       simulateDangerAction,
+      t,
     ],
   )
 

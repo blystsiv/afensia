@@ -1,11 +1,11 @@
 export type EmployeeStatus = 'Active' | 'Inactive' | 'Invited'
 export type ToastTone = 'info' | 'success' | 'warning' | 'danger'
 export type ThemeMode = 'light' | 'dark'
-export type UILanguage = 'en' | 'fr' | 'hi'
-export type FutureLanguage = 'nl' | 'ar' | 'es' | 'de' | 'it' | 'id'
+export type UILanguage = 'en' | 'fr' | 'hi' | 'nl' | 'ar' | 'es' | 'de' | 'it' | 'id'
 export type AnalyticsRange = '7d' | '30d' | '90d' | 'custom'
-export type ModuleStatus = 'Enabled' | 'Disabled' | 'Preview'
-export type ModuleTier = 'Core' | 'Advanced' | 'Future-ready'
+export type ModuleStatus = 'Included' | 'Add-on' | 'Coming soon'
+export type ModuleTier = 'Core' | 'Advanced' | 'Enterprise'
+export type PricingPlanId = 'starter' | 'growth' | 'enterprise'
 
 export interface Employee {
   id: string
@@ -44,6 +44,21 @@ export interface SecurityModule {
   enabled: boolean
   usageCount: number
   tier: ModuleTier
+  category: string
+  plan: PricingPlanId | 'addon'
+  priceLabel: string
+  note: string
+}
+
+export interface PricingPlan {
+  id: PricingPlanId
+  name: string
+  priceLabel: string
+  billingNote: string
+  description: string
+  seats: string
+  includedModules: string[]
+  highlight?: boolean
 }
 
 export interface UsagePoint {
@@ -61,6 +76,28 @@ export interface ModuleUsagePoint {
 export interface EmployeeUsagePoint {
   name: string
   checks: number
+  safe: number
+  risky: number
+}
+
+export interface EmployeeInsight {
+  id: string
+  name: string
+  checks: number
+  safe: number
+  risky: number
+  topModule: string
+  lastActive: string
+  usageShare: number
+  trend: number
+}
+
+export interface EmployeeModuleHeatRow {
+  name: string
+  modules: Array<{
+    name: string
+    usage: number
+  }>
 }
 
 export interface AnalyticsSnapshot {
@@ -72,18 +109,24 @@ export interface AnalyticsSnapshot {
   usageTrend: UsagePoint[]
   moduleUsage: ModuleUsagePoint[]
   employeeUsage: EmployeeUsagePoint[]
+  employeeInsights: EmployeeInsight[]
+  employeeModuleHeat: EmployeeModuleHeatRow[]
 }
 
 export interface AccountBalance {
   totalBalance: number
   remainingBalance: number
   currency: string
+  planId: PricingPlanId
+  creditModel: string
+  renewalDate: string
 }
 
 export interface DashboardPreferences {
   showModuleBreakdown: boolean
   showEmployeeSummary: boolean
   showRiskSummary: boolean
+  showPlanSummary: boolean
 }
 
 export interface OnboardingDraft {
@@ -97,6 +140,7 @@ export interface OnboardingDraft {
   inviteLink: string
   theme: ThemeMode
   language: UILanguage
+  selectedPlan: PricingPlanId
 }
 
 export interface ToastMessage {

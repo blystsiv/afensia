@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
 import {
   Avatar,
   Badge,
@@ -11,6 +12,7 @@ import {
   SelectField,
   SkeletonBlock,
 } from '../components/ui'
+import { DataTable } from '../components/dataTable'
 import { usePrototype } from '../context/PrototypeContext'
 import { createInviteLink, formatDate, formatNumber } from '../lib/format'
 import { useSimulatedLoading } from '../lib/useSimulatedLoading'
@@ -25,7 +27,7 @@ function EmployeesSkeleton() {
 }
 
 export function EmployeesPage() {
-  const { employees, modules, inviteEmployee, resendInvite, removeEmployee, copyInviteValue } = usePrototype()
+  const { employees, modules, inviteEmployee, resendInvite, removeEmployee, copyInviteValue, t } = usePrototype()
   const loading = useSimulatedLoading('employees-console', 260)
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'All' | EmployeeStatus>('All')
@@ -48,6 +50,93 @@ export function EmployeesPage() {
       return matchesFilter && source.includes(query.trim().toLowerCase())
     })
   }, [employees, query, statusFilter])
+
+  const columns = useMemo<ColumnDef<Employee>[]>(
+    () => [
+      {
+        id: 'name',
+        header: t('navEmployees'),
+        accessorFn: (employee) => employee.name,
+        cell: ({ row }) => (
+          <div className="row-person">
+            <Avatar name={row.original.name} />
+            <div>
+              <div className="row-title">{row.original.name}</div>
+              <div className="row-meta">{row.original.role}</div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'email',
+        header: t('businessEmail'),
+      },
+      {
+        id: 'status',
+        header: t('status'),
+        accessorFn: (employee) => employee.status,
+        cell: ({ row }) => (
+          <Badge tone={row.original.status === 'Active' ? 'success' : row.original.status === 'Invited' ? 'warning' : 'neutral'}>
+            {row.original.status === 'Active' ? t('active') : row.original.status === 'Invited' ? t('invited') : t('inactive')}
+          </Badge>
+        ),
+      },
+      {
+        id: 'joinedDate',
+        header: t('joinedDate'),
+        accessorFn: (employee) => employee.joinedDate ?? '9999-12-31',
+        cell: ({ row }) => formatDate(row.original.joinedDate),
+      },
+      {
+        id: 'assignedModules',
+        header: t('assignedAccess'),
+        accessorFn: (employee) => employee.assignedModules.length,
+        cell: ({ row }) => {
+          const assignedLabels = row.original.assignedModules.map((moduleId) => moduleNameMap[moduleId]).filter(Boolean)
+
+          return (
+            <div className="module-pill-row">
+              {assignedLabels.slice(0, 2).map((label) => (
+                <Badge key={label} tone="neutral">
+                  {label}
+                </Badge>
+              ))}
+              {assignedLabels.length > 2 ? <span className="row-meta">+{assignedLabels.length - 2}</span> : null}
+            </div>
+          )
+        },
+      },
+      {
+        id: 'totalChecks',
+        header: t('checksUsed'),
+        accessorFn: (employee) => employee.totalChecks,
+        cell: ({ row }) => formatNumber(row.original.totalChecks),
+      },
+      {
+        id: 'actions',
+        header: t('actions'),
+        enableSorting: false,
+        cell: ({ row }) => (
+          <div className="table-actions">
+            {row.original.status === 'Invited' ? (
+              <>
+                <button type="button" className="text-link" onClick={() => resendInvite(row.original.id)}>
+                  {t('resendInvite')}
+                </button>
+                <button type="button" className="text-link" onClick={() => copyInviteValue(row.original.inviteLink)}>
+                  {t('copyInviteLink')}
+                </button>
+              </>
+            ) : null}
+            <button type="button" className="text-link danger-link" onClick={() => setEmployeeToRemove(row.original)}>
+              {t('remove')}
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [copyInviteValue, moduleNameMap, resendInvite, t],
+  )
 
   const resetInviteModal = () => {
     setInviteModalOpen(false)
@@ -82,107 +171,48 @@ export function EmployeesPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        title="Employees"
-        description="Manage team access and invite flow"
-        action={<Button onClick={() => setInviteModalOpen(true)}>Invite employee</Button>}
+        title={t('navEmployees')}
+        description={t('manageTeamAccess')}
+        action={<Button onClick={() => setInviteModalOpen(true)}>{t('inviteEmployee')}</Button>}
       />
 
       <div className="toolbar-row employee-toolbar-row">
-        <InputField
-          label="Search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search employees"
-        />
-        <SelectField label="Status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as 'All' | EmployeeStatus)}>
+        <InputField label={t('search')} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search employees" />
+        <SelectField label={t('status')} value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as 'All' | EmployeeStatus)}>
           <option value="All">All</option>
-          <option value="Active">Active</option>
-          <option value="Invited">Invited</option>
-          <option value="Inactive">Inactive</option>
+          <option value="Active">{t('active')}</option>
+          <option value="Invited">{t('invited')}</option>
+          <option value="Inactive">{t('inactive')}</option>
         </SelectField>
       </div>
 
       {loading ? (
         <EmployeesSkeleton />
-      ) : filteredEmployees.length ? (
-        <Card className="table-card">
-          <div className="table-wrap">
-            <table className="data-table employee-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Status</th>
-                  <th>Joined date</th>
-                  <th>Assigned access</th>
-                  <th>Checks used</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredEmployees.map((employee) => {
-                  const assignedLabels = employee.assignedModules.map((moduleId) => moduleNameMap[moduleId]).filter(Boolean)
-                  return (
-                    <tr key={employee.id}>
-                      <td>
-                        <div className="row-person">
-                          <Avatar name={employee.name} />
-                          <div>
-                            <div className="row-title">{employee.name}</div>
-                            <div className="row-meta">{employee.role}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>{employee.email}</td>
-                      <td>
-                        <Badge
-                          tone={employee.status === 'Active' ? 'success' : employee.status === 'Invited' ? 'warning' : 'neutral'}
-                        >
-                          {employee.status}
-                        </Badge>
-                      </td>
-                      <td>{formatDate(employee.joinedDate)}</td>
-                      <td>
-                        <div className="module-pill-row">
-                          {assignedLabels.slice(0, 2).map((label) => (
-                            <Badge key={label} tone="neutral">
-                              {label}
-                            </Badge>
-                          ))}
-                          {assignedLabels.length > 2 ? <span className="row-meta">+{assignedLabels.length - 2}</span> : null}
-                        </div>
-                      </td>
-                      <td>{formatNumber(employee.totalChecks)}</td>
-                      <td>
-                        <div className="table-actions">
-                          {employee.status === 'Invited' ? (
-                            <>
-                              <button type="button" className="text-link" onClick={() => resendInvite(employee.id)}>
-                                Resend invite
-                              </button>
-                              <button type="button" className="text-link" onClick={() => copyInviteValue(employee.inviteLink)}>
-                                Copy invite link
-                              </button>
-                            </>
-                          ) : null}
-                          <button type="button" className="text-link danger-link" onClick={() => setEmployeeToRemove(employee)}>
-                            Remove
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
       ) : (
-        <Card>
-          <EmptyState
-            title="No employees yet"
-            description="Invite employees to start the mobile app rollout."
-            action={<Button onClick={() => setInviteModalOpen(true)}>Invite employee</Button>}
+        <Card className="table-card">
+          <DataTable
+            data={filteredEmployees}
+            columns={columns}
+            getRowId={(employee) => employee.id}
+            tableClassName="employee-table"
+            summary={
+              <div className="data-table-summary-row">
+                <span>{formatNumber(filteredEmployees.length)} shown</span>
+                <span>{formatNumber(employees.length)} total</span>
+                <span>{formatNumber(employees.filter((employee) => employee.status === 'Invited').length)} invited</span>
+              </div>
+            }
+            emptyState={
+              employees.length ? (
+                <EmptyState title="No matching employees" description="Try a different search or status filter." />
+              ) : (
+                <EmptyState
+                  title={t('noEmployeesYet')}
+                  description={t('inviteEmployeesToStart')}
+                  action={<Button onClick={() => setInviteModalOpen(true)}>{t('inviteEmployee')}</Button>}
+                />
+              )
+            }
           />
         </Card>
       )}
@@ -190,29 +220,29 @@ export function EmployeesPage() {
       <Modal
         open={inviteModalOpen}
         onClose={resetInviteModal}
-        title="Invite employee"
-        description="Employees join Afensia through the mobile app invite flow."
+        title={t('inviteEmployee')}
+        description={t('employeesJoinMobile')}
         footer={
           inviteSuccess ? (
-            <Button onClick={resetInviteModal}>Close</Button>
+            <Button onClick={resetInviteModal}>{t('close')}</Button>
           ) : (
             <>
               <Button variant="ghost" onClick={resetInviteModal}>
-                Cancel
+                {t('cancel')}
               </Button>
-              <Button onClick={handleInvite}>Send invite</Button>
+              <Button onClick={handleInvite}>{t('inviteEmployee')}</Button>
             </>
           )
         }
       >
         {inviteSuccess ? (
-          <div className="modal-success-panel">
-            <div className="modal-success-title">Invite sent</div>
+          <div className="modal-success-panel modal-success-panel-refined">
+            <div className="modal-success-title">{t('inviteSent')}</div>
             <div className="modal-success-copy">{inviteSuccess.email} can join with the mobile deep link.</div>
             <div className="invite-link-row compact-invite-row">
               <div className="inline-code">{inviteLink}</div>
               <Button variant="secondary" onClick={() => copyInviteValue(inviteLink)}>
-                Copy link
+                {t('copyLink')}
               </Button>
             </div>
           </div>
@@ -229,11 +259,11 @@ export function EmployeesPage() {
               <div className="inline-code muted-code">{inviteLink || 'Generate a secure invite link if needed.'}</div>
               <div className="button-row">
                 <Button variant="secondary" onClick={generateInviteLink}>
-                  Generate link
+                  {t('generateLink')}
                 </Button>
                 {inviteLink ? (
                   <Button variant="ghost" onClick={() => copyInviteValue(inviteLink)}>
-                    Copy link
+                    {t('copyLink')}
                   </Button>
                 ) : null}
               </div>
@@ -245,12 +275,12 @@ export function EmployeesPage() {
       <Modal
         open={Boolean(employeeToRemove)}
         onClose={() => setEmployeeToRemove(null)}
-        title="Remove employee"
+        title={t('remove')}
         description="This removes the employee from the business account."
         footer={
           <>
             <Button variant="ghost" onClick={() => setEmployeeToRemove(null)}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               variant="danger"
@@ -261,7 +291,7 @@ export function EmployeesPage() {
                 setEmployeeToRemove(null)
               }}
             >
-              Remove
+              {t('remove')}
             </Button>
           </>
         }

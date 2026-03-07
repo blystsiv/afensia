@@ -17,8 +17,9 @@ import type { DashboardPreferences, ThemeMode, UILanguage } from '../types'
 export function SettingsPage() {
   const {
     company,
-    activeLanguages,
-    futureLanguages,
+    supportedLanguages,
+    pricingPlans,
+    balance,
     dashboardPreferences,
     themeMode,
     uiLanguage,
@@ -28,6 +29,7 @@ export function SettingsPage() {
     saveDashboardPreferences,
     simulateDangerAction,
     showToast,
+    t,
   } = usePrototype()
   const [adminName, setAdminName] = useState(company.adminName)
   const [adminEmail, setAdminEmail] = useState(company.adminEmail)
@@ -37,104 +39,99 @@ export function SettingsPage() {
   const [language, setLanguage] = useState<UILanguage>(uiLanguage)
   const [visibility, setVisibility] = useState<DashboardPreferences>(dashboardPreferences)
   const [dangerOpen, setDangerOpen] = useState(false)
+  const currentPlan = pricingPlans.find((plan) => plan.id === balance.planId) ?? pricingPlans[0]
 
   return (
     <div className="page-stack">
-      <PageHeader title="Settings" description="Account, localization, and console preferences" />
+      <PageHeader title={t('navSettings')} description={t('settingsDescription')} />
 
       <section className="settings-grid settings-grid-expanded">
-        <Card title="Account settings" subtitle="Admin account access">
+        <Card title={t('accountSettings')} subtitle="Admin account access">
           <div className="form-grid two-col">
-            <InputField label="Admin name" value={adminName} onChange={(event) => setAdminName(event.target.value)} />
-            <InputField label="Admin email" type="email" value={adminEmail} onChange={(event) => setAdminEmail(event.target.value)} />
+            <InputField label={t('adminName')} value={adminName} onChange={(event) => setAdminName(event.target.value)} />
+            <InputField label={t('adminEmail')} type="email" value={adminEmail} onChange={(event) => setAdminEmail(event.target.value)} />
           </div>
           <div className="form-actions align-start">
-            <Button onClick={() => saveCompanyProfile({ adminName, adminEmail })}>Save account settings</Button>
-            <Button
-              variant="secondary"
-              onClick={() => showToast('Password reset', 'Password reset flow is represented in the prototype.', 'info')}
-            >
-              Send password reset
+            <Button onClick={() => saveCompanyProfile({ adminName, adminEmail })}>{t('save')}</Button>
+            <Button variant="secondary" onClick={() => showToast('Password reset', 'Password reset flow is represented in the prototype.', 'info')}>
+              {t('sendPasswordReset')}
             </Button>
           </div>
         </Card>
 
-        <Card title="Theme settings" subtitle="Light mode is the primary experience">
+        <Card title={t('themeSettings')} subtitle="Light is primary, dark is available">
           <div className="form-grid single-col">
             <SegmentedControl
               value={theme}
               onChange={setTheme}
               options={[
-                { label: 'Light mode', value: 'light' },
-                { label: 'Dark mode', value: 'dark' },
+                { label: t('lightMode'), value: 'light' },
+                { label: t('darkMode'), value: 'dark' },
               ]}
             />
           </div>
           <div className="form-actions align-start">
-            <Button onClick={() => saveInterfacePreferences({ language, theme })}>Save theme</Button>
+            <Button onClick={() => saveInterfacePreferences({ language, theme })}>{t('save')}</Button>
           </div>
         </Card>
 
-        <Card title="Language settings" subtitle="Launch-ready and future-ready languages">
+        <Card title={t('languageSettings')} subtitle={t('localizationReady')}>
           <div className="form-grid two-col">
-            <SelectField label="Active language" value={language} onChange={(event) => setLanguage(event.target.value as UILanguage)}>
-              {activeLanguages.map((item) => (
+            <SelectField label={t('language')} value={language} onChange={(event) => setLanguage(event.target.value as UILanguage)}>
+              {supportedLanguages.map((item) => (
                 <option key={item.code} value={item.code}>
-                  {item.label}
+                  {item.nativeLabel}
                 </option>
               ))}
             </SelectField>
-            <InputField label="Localization readiness" value="RTL-ready architecture prepared for Arabic" readOnly />
+            <InputField label="Direction" value={supportedLanguages.find((item) => item.code === language)?.dir.toUpperCase() ?? 'LTR'} readOnly />
           </div>
-          <div className="language-group">
-            <div>
-              <div className="meta-label">Active languages</div>
-              <div className="module-pill-row">
-                {activeLanguages.map((item) => (
-                  <Badge key={item.code} tone="info">
-                    {item.label}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-            <div>
-              <div className="meta-label">Available soon</div>
-              <div className="module-pill-row">
-                {futureLanguages.map((item) => (
-                  <Badge key={item.code} tone="neutral">
-                    {item.label}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+          <div className="language-option-grid settings-language-grid">
+            {supportedLanguages.map((item) => (
+              <button key={item.code} type="button" className={item.code === language ? 'language-option language-option-active' : 'language-option'} onClick={() => setLanguage(item.code)}>
+                <strong>{item.nativeLabel}</strong>
+                <span>{item.label}</span>
+                <Badge tone={item.dir === 'rtl' ? 'warning' : 'info'}>{item.dir.toUpperCase()}</Badge>
+              </button>
+            ))}
           </div>
           <div className="form-actions align-start">
-            <Button onClick={() => saveInterfacePreferences({ language, theme })}>Save language</Button>
+            <Button onClick={() => saveInterfacePreferences({ language, theme })}>{t('save')}</Button>
           </div>
         </Card>
 
-        <Card title="Invitation settings" subtitle="Employee mobile invite flow">
+        <Card title="Commercial setup" subtitle="Read-only pricing direction for the prototype">
+          <div className="summary-list compact-summary-list">
+            <div className="summary-row compact-row">
+              <span className="row-title">{t('currentPlan')}</span>
+              <span className="row-meta">{currentPlan.name}</span>
+            </div>
+            <div className="summary-row compact-row">
+              <span className="row-title">Pricing</span>
+              <span className="row-meta">{currentPlan.priceLabel}</span>
+            </div>
+            <div className="summary-row compact-row">
+              <span className="row-title">Credits</span>
+              <span className="row-meta">{balance.creditModel}</span>
+            </div>
+          </div>
+        </Card>
+
+        <Card title={t('invitationSettings')} subtitle="Employee mobile invite flow">
           <div className="form-grid single-col">
             <SelectField label="Invitation behavior" value={inviteBehavior} onChange={(event) => setInviteBehavior(event.target.value)}>
               <option>Email + secure mobile invite link</option>
               <option>Copy invite link first</option>
               <option>Mobile link only</option>
             </SelectField>
-            <TextareaField
-              label="Link sharing controls"
-              rows={4}
-              value={inviteControls}
-              onChange={(event) => setInviteControls(event.target.value)}
-            />
+            <TextareaField label="Link sharing controls" rows={4} value={inviteControls} onChange={(event) => setInviteControls(event.target.value)} />
           </div>
           <div className="form-actions align-start">
-            <Button onClick={() => saveInvitationSettings({ invitationBehavior: inviteBehavior, inviteLinkControls: inviteControls })}>
-              Save invitation settings
-            </Button>
+            <Button onClick={() => saveInvitationSettings({ invitationBehavior: inviteBehavior, inviteLinkControls: inviteControls })}>{t('save')}</Button>
           </div>
         </Card>
 
-        <Card title="Feature visibility" subtitle="Overview shortcuts and module visibility blocks">
+        <Card title={t('featureVisibility')} subtitle="Overview summary blocks and plan visibility">
           <div className="form-grid single-col">
             <CheckboxField
               checked={visibility.showModuleBreakdown}
@@ -151,20 +148,25 @@ export function SettingsPage() {
               onChange={(checked) => setVisibility((current) => ({ ...current, showRiskSummary: checked }))}
               label="Show risk summary on overview"
             />
+            <CheckboxField
+              checked={visibility.showPlanSummary}
+              onChange={(checked) => setVisibility((current) => ({ ...current, showPlanSummary: checked }))}
+              label="Show pricing and balance summary on overview"
+            />
           </div>
           <div className="form-actions align-start">
-            <Button onClick={() => saveDashboardPreferences(visibility)}>Save visibility preferences</Button>
+            <Button onClick={() => saveDashboardPreferences(visibility)}>{t('save')}</Button>
           </div>
         </Card>
 
-        <Card title="Danger zone" subtitle="Destructive action" className="danger-card">
+        <Card title={t('dangerZone')} subtitle="Destructive action" className="danger-card">
           <div className="danger-row">
             <div>
               <div className="row-title">Delete business account</div>
               <div className="row-meta">This is a frontend confirmation flow only.</div>
             </div>
             <Button variant="danger" onClick={() => setDangerOpen(true)}>
-              Delete account
+              {t('deleteAccount')}
             </Button>
           </div>
         </Card>
@@ -178,7 +180,7 @@ export function SettingsPage() {
         footer={
           <>
             <Button variant="ghost" onClick={() => setDangerOpen(false)}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               variant="danger"
@@ -187,7 +189,7 @@ export function SettingsPage() {
                 setDangerOpen(false)
               }}
             >
-              Confirm delete
+              {t('deleteAccount')}
             </Button>
           </>
         }

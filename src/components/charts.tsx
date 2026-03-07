@@ -1,11 +1,11 @@
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
   Legend,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -29,16 +29,22 @@ const tooltipStyle = {
 
 export function UsageTrendChart({ data }: { data: UsagePoint[] }) {
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <LineChart data={data} margin={{ top: 12, right: 12, left: -20, bottom: 0 }}>
+    <ResponsiveContainer width="100%" height={300}>
+      <AreaChart data={data} margin={{ top: 12, right: 12, left: -20, bottom: 0 }}>
+        <defs>
+          <linearGradient id="usageArea" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.26} />
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.04} />
+          </linearGradient>
+        </defs>
         <CartesianGrid stroke="var(--border)" vertical={false} />
         <XAxis dataKey="label" tick={axisStyle} tickLine={false} axisLine={false} />
         <YAxis tick={axisStyle} tickLine={false} axisLine={false} />
         <Tooltip contentStyle={tooltipStyle} />
         <Legend wrapperStyle={{ color: 'var(--text-soft)' }} />
-        <Line type="monotone" dataKey="checks" stroke="var(--accent)" strokeWidth={2.4} dot={false} name="Checks" />
-        <Line type="monotone" dataKey="risky" stroke="#f59e0b" strokeWidth={2} dot={false} name="Risky" />
-      </LineChart>
+        <Area type="monotone" dataKey="checks" stroke="var(--accent)" fill="url(#usageArea)" strokeWidth={2.6} name="Checks" />
+        <Area type="monotone" dataKey="risky" stroke="#f59e0b" fill="#f59e0b22" strokeWidth={2} name="Risky" />
+      </AreaChart>
     </ResponsiveContainer>
   )
 }
@@ -59,13 +65,29 @@ export function ModuleUsageChart({ data }: { data: ModuleUsagePoint[] }) {
 
 export function EmployeeUsageChart({ data }: { data: EmployeeUsagePoint[] }) {
   return (
-    <ResponsiveContainer width="100%" height={260}>
+    <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data} margin={{ top: 10, right: 12, left: -18, bottom: 0 }}>
         <CartesianGrid stroke="var(--border)" vertical={false} />
         <XAxis dataKey="name" tick={axisStyle} tickLine={false} axisLine={false} />
         <YAxis tick={axisStyle} tickLine={false} axisLine={false} />
         <Tooltip contentStyle={tooltipStyle} />
         <Bar dataKey="checks" fill="#8bb4ff" radius={[8, 8, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
+export function EmployeeRiskChart({ data }: { data: EmployeeUsagePoint[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={data} layout="vertical" margin={{ top: 0, right: 12, left: 12, bottom: 0 }}>
+        <CartesianGrid stroke="var(--border)" horizontal={false} />
+        <XAxis type="number" tick={axisStyle} tickLine={false} axisLine={false} />
+        <YAxis type="category" dataKey="name" tick={axisStyle} tickLine={false} axisLine={false} width={120} />
+        <Tooltip contentStyle={tooltipStyle} />
+        <Legend wrapperStyle={{ color: 'var(--text-soft)' }} />
+        <Bar dataKey="safe" stackId="a" fill="var(--accent)" radius={[0, 0, 0, 0]} name="Safe" />
+        <Bar dataKey="risky" stackId="a" fill="#f59e0b" radius={[0, 8, 8, 0]} name="Risky" />
       </BarChart>
     </ResponsiveContainer>
   )

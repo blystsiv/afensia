@@ -1,13 +1,24 @@
+import { languageMeta } from './i18n'
+
 export function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ')
 }
 
+function resolveLocale() {
+  if (typeof document === 'undefined') {
+    return 'en-US'
+  }
+
+  const lang = document.documentElement.lang as keyof typeof languageMeta | ''
+  return (lang && languageMeta[lang]?.locale) || 'en-US'
+}
+
 export function formatNumber(value: number) {
-  return new Intl.NumberFormat('en-US').format(value)
+  return new Intl.NumberFormat(resolveLocale()).format(value)
 }
 
 export function formatCurrency(value: number, currency = 'USD') {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat(resolveLocale(), {
     style: 'currency',
     currency,
     maximumFractionDigits: 0,
@@ -24,7 +35,7 @@ export function formatDate(value: string | null) {
     return 'Pending join'
   }
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(resolveLocale(), {
     month: 'short',
     day: 'numeric',
     year: 'numeric',

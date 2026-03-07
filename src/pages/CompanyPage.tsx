@@ -1,14 +1,5 @@
 import { useState } from 'react'
-import {
-  Button,
-  Card,
-  InputField,
-  PageHeader,
-  SelectField,
-  SkeletonBlock,
-  StatCard,
-  TextareaField,
-} from '../components/ui'
+import { Button, Card, InputField, PageHeader, SelectField, SkeletonBlock, StatCard, TextareaField } from '../components/ui'
 import { usePrototype } from '../context/PrototypeContext'
 import { useSimulatedLoading } from '../lib/useSimulatedLoading'
 
@@ -35,7 +26,7 @@ function CompanySkeleton() {
 }
 
 export function CompanyPage() {
-  const { company, employees, modules, uiLanguage, themeMode, saveCompanyProfile } = usePrototype()
+  const { company, employees, modules, balance, pricingPlans, supportedLanguages, uiLanguage, themeMode, saveCompanyProfile, t } = usePrototype()
   const loading = useSimulatedLoading('company-console', 260)
   const [companyName, setCompanyName] = useState(company.companyName)
   const [industry, setIndustry] = useState(company.industry)
@@ -45,6 +36,8 @@ export function CompanyPage() {
   const [linkedIn, setLinkedIn] = useState(company.linkedIn)
   const [adminEmail, setAdminEmail] = useState(company.adminEmail)
   const [description, setDescription] = useState(company.description)
+  const currentPlan = pricingPlans.find((plan) => plan.id === balance.planId) ?? pricingPlans[0]
+  const currentLanguage = supportedLanguages.find((language) => language.code === uiLanguage)
 
   if (loading) {
     return <CompanySkeleton />
@@ -52,33 +45,32 @@ export function CompanyPage() {
 
   return (
     <div className="page-stack">
-      <PageHeader title="Company" description="Managed business account" />
+      <PageHeader title={t('navCompany')} description={t('companyDescription')} />
 
-      <section className="stats-grid five-up">
-        <StatCard label="Company status" value={company.status} />
-        <StatCard label="Employees" value={String(employees.length)} />
-        <StatCard label="Enabled modules" value={String(modules.filter((module) => module.enabled).length)} />
-        <StatCard label="Language" value={uiLanguage.toUpperCase()} />
-        <StatCard label="Theme" value={themeMode} />
+      <section className="stats-grid four-up">
+        <StatCard label={t('navEmployees')} value={String(employees.length)} />
+        <StatCard label={t('navModules')} value={String(modules.filter((module) => module.enabled).length)} />
+        <StatCard label={t('language')} value={currentLanguage?.nativeLabel ?? uiLanguage.toUpperCase()} />
+        <StatCard label={t('currentPlan')} value={currentPlan.name} />
       </section>
 
-      <section className="company-grid">
+      <section className="company-grid company-grid-expanded">
         <Card title="Company details" subtitle="Edit managed account information">
           <div className="form-grid two-col">
-            <InputField label="Company name" value={companyName} onChange={(event) => setCompanyName(event.target.value)} />
-            <InputField label="Admin email" type="email" value={adminEmail} onChange={(event) => setAdminEmail(event.target.value)} />
-            <InputField label="Industry" value={industry} onChange={(event) => setIndustry(event.target.value)} />
-            <SelectField label="Team size" value={teamSize} onChange={(event) => setTeamSize(event.target.value)}>
+            <InputField label={t('companyName')} value={companyName} onChange={(event) => setCompanyName(event.target.value)} />
+            <InputField label={t('adminEmail')} type="email" value={adminEmail} onChange={(event) => setAdminEmail(event.target.value)} />
+            <InputField label={t('industry')} value={industry} onChange={(event) => setIndustry(event.target.value)} />
+            <SelectField label={t('teamSize')} value={teamSize} onChange={(event) => setTeamSize(event.target.value)}>
               <option>1-10 employees</option>
               <option>11-50 employees</option>
               <option>51-200 employees</option>
               <option>201-500 employees</option>
               <option>500+ employees</option>
             </SelectField>
-            <InputField label="Country / region" value={countryRegion} onChange={(event) => setCountryRegion(event.target.value)} />
-            <InputField label="Website" value={website} onChange={(event) => setWebsite(event.target.value)} />
-            <InputField label="LinkedIn" value={linkedIn} onChange={(event) => setLinkedIn(event.target.value)} />
-            <div />
+            <InputField label={t('countryRegion')} value={countryRegion} onChange={(event) => setCountryRegion(event.target.value)} />
+            <InputField label={t('website')} value={website} onChange={(event) => setWebsite(event.target.value)} />
+            <InputField label={t('linkedIn')} value={linkedIn} onChange={(event) => setLinkedIn(event.target.value)} />
+            <InputField label={t('theme')} value={themeMode} readOnly />
             <TextareaField label="Business description" rows={5} value={description} onChange={(event) => setDescription(event.target.value)} />
           </div>
           <div className="form-actions align-start">
@@ -96,12 +88,12 @@ export function CompanyPage() {
                 })
               }
             >
-              Save company details
+              {t('save')}
             </Button>
           </div>
         </Card>
 
-        <Card title="Account summary" subtitle="Current business entity view">
+        <Card title="Account summary" subtitle="Managed business entity view">
           <div className="summary-list compact-summary-list">
             <div className="summary-row compact-row">
               <span className="row-title">Support contact</span>
@@ -116,12 +108,12 @@ export function CompanyPage() {
               <span className="row-meta">{linkedIn}</span>
             </div>
             <div className="summary-row compact-row">
-              <span className="row-title">Selected language</span>
-              <span className="row-meta">{uiLanguage.toUpperCase()}</span>
+              <span className="row-title">{t('language')}</span>
+              <span className="row-meta">{currentLanguage?.nativeLabel ?? uiLanguage.toUpperCase()}</span>
             </div>
             <div className="summary-row compact-row">
-              <span className="row-title">Selected theme</span>
-              <span className="row-meta">{themeMode}</span>
+              <span className="row-title">{t('currentPlan')}</span>
+              <span className="row-meta">{currentPlan.priceLabel}</span>
             </div>
           </div>
         </Card>

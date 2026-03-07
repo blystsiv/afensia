@@ -3,20 +3,11 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { usePrototype } from '../context/PrototypeContext'
 import { formatCurrency } from '../lib/format'
 import { cx } from '../lib/format'
-import { Badge, Button, ToastViewport } from './ui'
-
-const navigation = [
-  { label: 'Overview', to: '/app/overview' },
-  { label: 'Employees', to: '/app/employees' },
-  { label: 'Modules', to: '/app/modules' },
-  { label: 'Analytics', to: '/app/analytics' },
-  { label: 'Company', to: '/app/company' },
-  { label: 'Settings', to: '/app/settings' },
-]
+import { Button, ToastViewport } from './ui'
 
 export function AuthLayout() {
   return (
-    <div className="auth-layout">
+    <div className="auth-layout auth-layout-refined">
       <div className="auth-brand-row">
         <span className="brand-mark">
           <ShieldCheck size={16} />
@@ -35,8 +26,18 @@ export function AuthLayout() {
 
 export function DashboardLayout() {
   const navigate = useNavigate()
-  const { company, modules, balance, themeMode, uiLanguage, toasts, dismissToast } = usePrototype()
+  const { company, modules, balance, pricingPlans, themeMode, uiLanguage, toasts, dismissToast, t, supportedLanguages } = usePrototype()
   const enabledModules = modules.filter((module) => module.enabled).length
+  const currentPlan = pricingPlans.find((plan) => plan.id === balance.planId)
+  const currentLanguage = supportedLanguages.find((language) => language.code === uiLanguage)
+  const navigation = [
+    { label: t('navOverview'), to: '/app/overview' },
+    { label: t('navEmployees'), to: '/app/employees' },
+    { label: t('navModules'), to: '/app/modules' },
+    { label: t('navAnalytics'), to: '/app/analytics' },
+    { label: t('navCompany'), to: '/app/company' },
+    { label: t('navSettings'), to: '/app/settings' },
+  ]
 
   return (
     <div className="dashboard-layout">
@@ -52,21 +53,24 @@ export function DashboardLayout() {
             </div>
           </div>
 
-          <div className="sidebar-company-panel">
+          <div className="sidebar-company-panel sidebar-company-panel-rich">
             <div className="sidebar-company-header">
               <div>
                 <div className="sidebar-company-name">{company.companyName}</div>
                 <div className="subtle-copy">{company.adminEmail}</div>
               </div>
-              <Badge tone="success">{company.status}</Badge>
+            </div>
+            <div className="sidebar-plan-chip">
+              <span>{t('currentPlan')}</span>
+              <strong>{currentPlan?.name}</strong>
             </div>
             <div className="sidebar-company-stats">
               <div>
-                <span>Remaining balance</span>
+                <span>{t('remainingBalance')}</span>
                 <strong>{formatCurrency(balance.remainingBalance, balance.currency)}</strong>
               </div>
               <div>
-                <span>Enabled modules</span>
+                <span>{t('navModules')}</span>
                 <strong>{enabledModules}</strong>
               </div>
             </div>
@@ -86,13 +90,13 @@ export function DashboardLayout() {
         </div>
 
         <div className="sidebar-footer">
-          <div className="sidebar-meta">
-            <span>{uiLanguage.toUpperCase()}</span>
+          <div className="sidebar-meta sidebar-meta-rich">
+            <span>{currentLanguage?.nativeLabel ?? uiLanguage.toUpperCase()}</span>
             <span>{themeMode}</span>
           </div>
           <Button variant="ghost" className="logout-button" onClick={() => navigate('/signin')}>
             <LogOut size={16} />
-            <span>Logout</span>
+            <span>{t('navLogout')}</span>
           </Button>
         </div>
       </aside>

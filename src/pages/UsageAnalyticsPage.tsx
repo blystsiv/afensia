@@ -1,22 +1,16 @@
-import { useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
 import {
+  EmployeeRiskChart,
   EmployeeUsageChart,
   ModuleUsageChart,
   RiskSplitChart,
   UsageTrendChart,
 } from '../components/charts'
-import {
-  Badge,
-  Button,
-  Card,
-  EmptyState,
-  PageHeader,
-  SegmentedControl,
-  SkeletonBlock,
-  StatCard,
-} from '../components/ui'
+import { DataTable } from '../components/dataTable'
+import { Badge, Button, Card, EmptyState, PageHeader, SegmentedControl, SkeletonBlock, StatCard } from '../components/ui'
 import { usePrototype } from '../context/PrototypeContext'
-import { formatNumber } from '../lib/format'
+import { formatNumber, formatPercentage } from '../lib/format'
 import { useSimulatedLoading } from '../lib/useSimulatedLoading'
 import type { AnalyticsRange } from '../types'
 
@@ -30,10 +24,17 @@ function AnalyticsSkeleton() {
           </Card>
         ))}
       </div>
-      <div className="analytics-grid analytics-grid-expanded">
-        {Array.from({ length: 4 }).map((_, index) => (
+      <div className="analytics-grid analytics-grid-dashboard">
+        {Array.from({ length: 5 }).map((_, index) => (
           <Card key={index}>
             <SkeletonBlock lines={6} />
+          </Card>
+        ))}
+      </div>
+      <div className="analytics-grid analytics-grid-bottom">
+        {Array.from({ length: 2 }).map((_, index) => (
+          <Card key={index}>
+            <SkeletonBlock lines={8} />
           </Card>
         ))}
       </div>
@@ -42,10 +43,57 @@ function AnalyticsSkeleton() {
 }
 
 export function UsageAnalyticsPage() {
-  const { analyticsSnapshots, modules } = usePrototype()
+  const { analyticsSnapshots, modules, t } = usePrototype()
   const [range, setRange] = useState<AnalyticsRange>('30d')
   const loading = useSimulatedLoading(`analytics-console-${range}`, 260)
   const snapshot = range === 'custom' ? null : analyticsSnapshots[range]
+
+  const heatMax = useMemo(() => {
+    if (!snapshot) {
+      return 1
+    }
+
+    return Math.max(...snapshot.employeeModuleHeat.flatMap((row) => row.modules.map((module) => module.usage)), 1)
+  }, [snapshot])
+
+  const employeeColumns = useMemo<ColumnDef<NonNullable<typeof snapshot>['employeeInsights'][number]>[]>(
+    () => [
+      {
+        accessorKey: 'name',
+        header: t('navEmployees'),
+        cell: ({ row }) => <div className="row-title">{row.original.name}</div>,
+      },
+      {
+        accessorKey: 'checks',
+        header: t('totalChecks'),
+        cell: ({ row }) => formatNumber(row.original.checks),
+      },
+      {
+        accessorKey: 'risky',
+        header: t('riskyFindings'),
+        cell: ({ row }) => formatNumber(row.original.risky),
+      },
+      {
+        accessorKey: 'topModule',
+        header: t('analyticsTopModule'),
+      },
+      {
+        accessorKey: 'lastActive',
+        header: t('analyticsLastActive'),
+      },
+      {
+        accessorKey: 'usageShare',
+        header: t('analyticsUsageShare'),
+        cell: ({ row }) => (
+          <div className="usage-share-cell">
+            <span>{row.original.usageShare}%</span>
+            <Badge tone={row.original.trend >= 0 ? 'success' : 'warning'}>{formatPercentage(row.original.trend)}</Badge>
+          </div>
+        ),
+      },
+    ],
+    [t],
+  )
 
   if (loading) {
     return <AnalyticsSkeleton />
@@ -54,8 +102,8 @@ export function UsageAnalyticsPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        title="Analytics"
-        description="Usage, module, and employee metrics"
+        title={t('navAnalytics')}
+        description={t('analyticsDescription')}
         action={
           <SegmentedControl
             value={range}
@@ -74,36 +122,86 @@ export function UsageAnalyticsPage() {
         <Card>
           <EmptyState
             title="No analytics for this range"
-            description="Custom ranges can be added later."
-            action={<Button onClick={() => setRange('30d')}>Use 30d</Button>}
+            description={t('analyticsNoCustom')}
+            action={<Button onClick={() => setRange('30d')}>{t('analyticsUse30d')}</Button>}
           />
         </Card>
       ) : (
         <>
           <section className="stats-grid analytics-stats-grid six-up">
-            <StatCard label="Total checks" value={formatNumber(snapshot.totalChecks)} />
-            <StatCard label="Risky findings" value={formatNumber(snapshot.riskyFindings)} />
-            <StatCard label="Safe findings" value={formatNumber(snapshot.safeFindings)} />
-            <StatCard label="Employee activity" value={formatNumber(snapshot.activeEmployees)} />
-            <StatCard label="Module usage" value={formatNumber(snapshot.moduleUsage.length)} meta="Active modules" />
+            <StatCard label={t('totalChecks')} value={formatNumber(snapshot.totalChecks)} />
+            <StatCard label={t('riskyFindings')} value={formatNumber(snapshot.riskyFindings)} />
+            <StatCard label={t('safeFindings')} value={formatNumber(snapshot.safeFindings)} />
+            <StatCard label={t('activeEmployees')} value={formatNumber(snapshot.activeEmployees)} />
+            <StatCard label="Module usage" value={formatNumber(snapshot.moduleUsage.length)} meta="Tracked modules" />
             <StatCard label="Average / employee" value={formatNumber(snapshot.averageChecksPerEmployee)} />
           </section>
 
-          <section className="analytics-grid analytics-grid-expanded">
-            <Card title="Checks over time" subtitle="Checks and risky findings">
+          <section className="analytics-grid analytics-grid-dashboard">
+            <Card className="analytics-card-wide" title={t('usageOverTime')} subtitle={t('usageOverTimeSubtitle')}>
               <UsageTrendChart data={snapshot.usageTrend} />
             </Card>
-            <Card title="Usage by module" subtitle="Top protection modules">
-              <ModuleUsageChart data={snapshot.moduleUsage} />
-            </Card>
-            <Card title="Usage by employee" subtitle="Most active team members">
-              <EmployeeUsageChart data={snapshot.employeeUsage} />
-            </Card>
-            <Card title="Risky vs safe" subtitle="Current period split">
+            <Card title={t('riskyFindings')} subtitle={t('analyticsEmployeeRiskView')}>
               <RiskSplitChart risky={snapshot.riskyFindings} safe={snapshot.safeFindings} />
               <div className="risk-legend-row">
-                <Badge tone="info">Enabled modules {modules.filter((module) => module.enabled).length}</Badge>
+                <Badge tone="info">Modules {modules.filter((module) => module.enabled).length}</Badge>
                 <Badge tone="warning">Risky {formatNumber(snapshot.riskyFindings)}</Badge>
+              </div>
+            </Card>
+            <Card title="Usage by module" subtitle="Most used protection areas">
+              <ModuleUsageChart data={snapshot.moduleUsage} />
+            </Card>
+            <Card title="Checks by employee" subtitle="Most active people this period">
+              <EmployeeUsageChart data={snapshot.employeeUsage} />
+            </Card>
+            <Card title={t('analyticsEmployeeRiskView')} subtitle="Safe vs risky checks by employee">
+              <EmployeeRiskChart data={snapshot.employeeUsage.slice(0, 5)} />
+            </Card>
+          </section>
+
+          <section className="analytics-grid analytics-grid-bottom">
+            <Card title={t('analyticsEmployeeLeaderboard')} subtitle="Who is using Afensia most this period">
+              <DataTable
+                data={snapshot.employeeInsights}
+                columns={employeeColumns}
+                getRowId={(employee) => employee.id}
+                tableClassName="analytics-table"
+                dense
+                summary={
+                  <div className="data-table-summary-row">
+                    <span>{formatNumber(snapshot.employeeInsights.length)} tracked employees</span>
+                    <span>{formatNumber(snapshot.totalChecks)} total checks</span>
+                    <span>{formatNumber(snapshot.riskyFindings)} risky findings</span>
+                  </div>
+                }
+              />
+            </Card>
+
+            <Card title={t('analyticsModuleAdoption')} subtitle="Heat map of feature usage by employee">
+              <div className="heatmap-grid">
+                <div className="heatmap-header" />
+                {snapshot.employeeModuleHeat[0]?.modules.map((module) => (
+                  <div key={module.name} className="heatmap-header-cell">
+                    {module.name}
+                  </div>
+                ))}
+                {snapshot.employeeModuleHeat.map((row) => (
+                  <Fragment key={row.name}>
+                    <div key={`${row.name}-label`} className="heatmap-row-label">
+                      {row.name}
+                    </div>
+                    {row.modules.map((module) => {
+                      const ratio = module.usage / heatMax
+                      const level = ratio === 0 ? 0 : ratio < 0.26 ? 1 : ratio < 0.51 ? 2 : ratio < 0.76 ? 3 : 4
+
+                      return (
+                        <div key={`${row.name}-${module.name}`} className={`heat-cell heat-cell-${level}`}>
+                          {formatNumber(module.usage)}
+                        </div>
+                      )
+                    })}
+                  </Fragment>
+                ))}
               </div>
             </Card>
           </section>

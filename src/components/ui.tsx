@@ -10,7 +10,16 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { cx } from '../lib/format'
+import { translate } from '../lib/i18n'
 import type { ToastMessage } from '../types'
+
+function resolveUiLanguage() {
+  if (typeof document === 'undefined') {
+    return 'en'
+  }
+
+  return (document.documentElement.lang || 'en') as Parameters<typeof translate>[0]
+}
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
@@ -211,6 +220,7 @@ export function PasswordField({
   error?: string
 }) {
   const [visible, setVisible] = useState(false)
+  const language = resolveUiLanguage()
 
   return (
     <InputField
@@ -223,7 +233,7 @@ export function PasswordField({
       suffix={
         <button type="button" className="text-button" onClick={() => setVisible((current) => !current)}>
           {visible ? <EyeOff size={16} /> : <Eye size={16} />}
-          <span>{visible ? 'Hide' : 'Show'}</span>
+          <span>{visible ? translate(language, 'hide') : translate(language, 'show')}</span>
         </button>
       }
     />

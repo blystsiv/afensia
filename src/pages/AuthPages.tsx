@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Button, CheckboxField, InputField, PasswordField } from '../components/ui'
+import { Badge, Button, CheckboxField, InputField, PasswordField } from '../components/ui'
 import { usePrototype } from '../context/PrototypeContext'
 
 function AuthCard({
@@ -13,8 +13,9 @@ function AuthCard({
   children: ReactNode
 }) {
   return (
-    <section className="auth-card">
-      <div className="auth-card-header">
+    <section className="auth-card auth-card-elevated">
+      <div className="auth-card-header auth-card-header-tight">
+        <Badge tone="info">Afensia Admin</Badge>
         <h1>{title}</h1>
         <p>{subtitle}</p>
       </div>
@@ -25,7 +26,7 @@ function AuthCard({
 
 export function SignInPage() {
   const navigate = useNavigate()
-  const { company, onboardingCompleted } = usePrototype()
+  const { company, onboardingCompleted, t } = usePrototype()
   const [email, setEmail] = useState(company.adminEmail)
   const [password, setPassword] = useState('Password123!')
   const [submitting, setSubmitting] = useState(false)
@@ -51,10 +52,10 @@ export function SignInPage() {
   }
 
   return (
-    <AuthCard title="Sign in" subtitle="Business admins only.">
+    <AuthCard title={t('signIn')} subtitle={t('businessAdminsOnly')}>
       <form className="auth-form" onSubmit={handleSubmit}>
         <InputField
-          label="Business email"
+          label={t('businessEmail')}
           type="email"
           autoComplete="email"
           value={email}
@@ -62,7 +63,7 @@ export function SignInPage() {
           error={errors.email}
         />
         <PasswordField
-          label="Password"
+          label={t('password')}
           autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
@@ -70,17 +71,17 @@ export function SignInPage() {
         />
         <div className="auth-inline-row">
           <a href="/forgot" onClick={(event) => event.preventDefault()} className="text-link">
-            Forgot password?
+            {t('forgotPassword')}
           </a>
         </div>
         <Button type="submit" loading={submitting}>
-          Sign in
+          {t('signIn')}
         </Button>
       </form>
       <div className="auth-footer-row">
-        <span>Need a business account?</span>
+        <span>{t('needBusinessAccount')}</span>
         <Link to="/create-account" className="text-link">
-          Create account
+          {t('createAccount')}
         </Link>
       </div>
     </AuthCard>
@@ -89,7 +90,7 @@ export function SignInPage() {
 
 export function CreateAccountPage() {
   const navigate = useNavigate()
-  const { registerBusiness } = usePrototype()
+  const { registerBusiness, t } = usePrototype()
   const [companyName, setCompanyName] = useState('NorthHill Beverage Group')
   const [businessEmail, setBusinessEmail] = useState('avery@northhillbev.com')
   const [password, setPassword] = useState('Password123!')
@@ -111,9 +112,7 @@ export function CreateAccountPage() {
   const formErrors = {
     companyName: submitted && !companyName.trim() ? 'Enter your company name.' : undefined,
     businessEmail: submitted && !businessEmail.trim() ? 'Enter your business email.' : undefined,
-    password: submitted && !(passwordChecks.length && passwordChecks.case && passwordChecks.symbol)
-      ? 'Use a stronger password.'
-      : undefined,
+    password: submitted && !(passwordChecks.length && passwordChecks.case && passwordChecks.symbol) ? t('checkYourPassword') : undefined,
     confirmPassword: submitted && !passwordChecks.match ? 'Passwords do not match.' : undefined,
     accepted: submitted && !accepted ? 'You must accept the terms and privacy notice.' : undefined,
   }
@@ -143,53 +142,49 @@ export function CreateAccountPage() {
   }
 
   return (
-    <AuthCard title="Create account" subtitle="Set up your business workspace.">
+    <AuthCard title={t('createAccount')} subtitle={t('createBusinessWorkspace')}>
       <form className="auth-form" onSubmit={handleSubmit}>
         <InputField
-          label="Company name"
+          label={t('companyName')}
           value={companyName}
           onChange={(event) => setCompanyName(event.target.value)}
           error={formErrors.companyName}
         />
         <InputField
-          label="Business email"
+          label={t('businessEmail')}
           type="email"
           value={businessEmail}
           onChange={(event) => setBusinessEmail(event.target.value)}
           error={formErrors.businessEmail}
         />
         <PasswordField
-          label="Password"
+          label={t('password')}
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           error={formErrors.password}
           hint="At least 8 characters."
         />
-        <div className="password-rule-list">
-          <div className={passwordChecks.length ? 'rule-item rule-item-valid' : 'rule-item'}>Minimum 8 characters</div>
-          <div className={passwordChecks.case ? 'rule-item rule-item-valid' : 'rule-item'}>Uppercase and lowercase</div>
-          <div className={passwordChecks.symbol ? 'rule-item rule-item-valid' : 'rule-item'}>Number or symbol</div>
+        <div className="password-rule-list password-rule-list-refined">
+          <div className={passwordChecks.length ? 'rule-item rule-item-valid' : 'rule-item'}>{t('minimum8')}</div>
+          <div className={passwordChecks.case ? 'rule-item rule-item-valid' : 'rule-item'}>{t('upperLower')}</div>
+          <div className={passwordChecks.symbol ? 'rule-item rule-item-valid' : 'rule-item'}>{t('numberSymbol')}</div>
         </div>
         <PasswordField
-          label="Confirm password"
+          label={t('confirmPassword')}
           value={confirmPassword}
           onChange={(event) => setConfirmPassword(event.target.value)}
           error={formErrors.confirmPassword}
         />
-        <CheckboxField
-          checked={accepted}
-          onChange={setAccepted}
-          label="I agree to the terms and privacy notice."
-        />
+        <CheckboxField checked={accepted} onChange={setAccepted} label={t('agreeTerms')} />
         {formErrors.accepted ? <div className="field-error standalone-error">{formErrors.accepted}</div> : null}
         <Button type="submit" loading={submitting}>
-          Create account
+          {t('createAccount')}
         </Button>
       </form>
       <div className="auth-footer-row">
-        <span>Already have an account?</span>
+        <span>{t('alreadyHaveAccount')}</span>
         <Link to="/signin" className="text-link">
-          Sign in
+          {t('signIn')}
         </Link>
       </div>
     </AuthCard>
