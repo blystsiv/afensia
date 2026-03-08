@@ -12,13 +12,14 @@ import {
   TextareaField,
 } from '../components/ui'
 import { usePrototype } from '../context/PrototypeContext'
+import { formatCurrency, formatNumber } from '../lib/format'
 import type { DashboardPreferences, ThemeMode, UILanguage } from '../types'
 
 export function SettingsPage() {
   const {
     company,
     supportedLanguages,
-    pricingPlans,
+    usageTiers,
     balance,
     dashboardPreferences,
     themeMode,
@@ -39,38 +40,36 @@ export function SettingsPage() {
   const [language, setLanguage] = useState<UILanguage>(uiLanguage)
   const [visibility, setVisibility] = useState<DashboardPreferences>(dashboardPreferences)
   const [dangerOpen, setDangerOpen] = useState(false)
-  const currentPlan = pricingPlans.find((plan) => plan.id === balance.planId) ?? pricingPlans[0]
+  const currentUsageTier = usageTiers.find((tier) => tier.id === balance.usageTierId) ?? usageTiers[0]
 
   return (
     <div className="page-stack">
       <PageHeader title={t('navSettings')} description={t('settingsDescription')} />
 
       <section className="settings-grid settings-grid-expanded">
-        <Card title={t('accountSettings')} subtitle="Admin account access">
+        <Card title={t('accountSettings')} subtitle="Admin access">
           <div className="form-grid two-col">
             <InputField label={t('adminName')} value={adminName} onChange={(event) => setAdminName(event.target.value)} />
             <InputField label={t('adminEmail')} type="email" value={adminEmail} onChange={(event) => setAdminEmail(event.target.value)} />
           </div>
-          <div className="form-actions align-start">
+          <div className="form-actions align-start compact-actions">
             <Button onClick={() => saveCompanyProfile({ adminName, adminEmail })}>{t('save')}</Button>
-            <Button variant="secondary" onClick={() => showToast('Password reset', 'Password reset flow is represented in the prototype.', 'info')}>
+            <Button variant="secondary" onClick={() => showToast('Password reset', 'Reset flow shown in prototype.', 'info')}>
               {t('sendPasswordReset')}
             </Button>
           </div>
         </Card>
 
-        <Card title={t('themeSettings')} subtitle="Light is primary, dark is available">
-          <div className="form-grid single-col">
-            <SegmentedControl
-              value={theme}
-              onChange={setTheme}
-              options={[
-                { label: t('lightMode'), value: 'light' },
-                { label: t('darkMode'), value: 'dark' },
-              ]}
-            />
-          </div>
-          <div className="form-actions align-start">
+        <Card title={t('themeSettings')} subtitle="Light and dark">
+          <SegmentedControl
+            value={theme}
+            onChange={setTheme}
+            options={[
+              { label: t('lightMode'), value: 'light' },
+              { label: t('darkMode'), value: 'dark' },
+            ]}
+          />
+          <div className="form-actions align-start compact-actions">
             <Button onClick={() => saveInterfacePreferences({ language, theme })}>{t('save')}</Button>
           </div>
         </Card>
@@ -95,29 +94,33 @@ export function SettingsPage() {
               </button>
             ))}
           </div>
-          <div className="form-actions align-start">
+          <div className="form-actions align-start compact-actions">
             <Button onClick={() => saveInterfacePreferences({ language, theme })}>{t('save')}</Button>
           </div>
         </Card>
 
-        <Card title="Commercial setup" subtitle="Read-only pricing direction for the prototype">
+        <Card title={t('pricingSummary')} subtitle="Usage-based account model">
           <div className="summary-list compact-summary-list">
             <div className="summary-row compact-row">
-              <span className="row-title">{t('currentPlan')}</span>
-              <span className="row-meta">{currentPlan.name}</span>
+              <span className="row-title">{t('workspaceFee')}</span>
+              <span className="row-meta">{formatCurrency(balance.workspaceFee, balance.currency)}</span>
             </div>
             <div className="summary-row compact-row">
-              <span className="row-title">Pricing</span>
-              <span className="row-meta">{currentPlan.priceLabel}</span>
+              <span className="row-title">{t('usageTier')}</span>
+              <span className="row-meta">{currentUsageTier.name}</span>
             </div>
             <div className="summary-row compact-row">
-              <span className="row-title">Credits</span>
-              <span className="row-meta">{balance.creditModel}</span>
+              <span className="row-title">{t('creditAllowance')}</span>
+              <span className="row-meta">{formatNumber(balance.monthlyAllowance)} credits</span>
+            </div>
+            <div className="summary-row compact-row">
+              <span className="row-title">{t('creditsUsed')}</span>
+              <span className="row-meta">{formatNumber(balance.usedCredits)}</span>
             </div>
           </div>
         </Card>
 
-        <Card title={t('invitationSettings')} subtitle="Employee mobile invite flow">
+        <Card title={t('invitationSettings')} subtitle="Mobile invite flow">
           <div className="form-grid single-col">
             <SelectField label="Invitation behavior" value={inviteBehavior} onChange={(event) => setInviteBehavior(event.target.value)}>
               <option>Email + secure mobile invite link</option>
@@ -126,35 +129,19 @@ export function SettingsPage() {
             </SelectField>
             <TextareaField label="Link sharing controls" rows={4} value={inviteControls} onChange={(event) => setInviteControls(event.target.value)} />
           </div>
-          <div className="form-actions align-start">
+          <div className="form-actions align-start compact-actions">
             <Button onClick={() => saveInvitationSettings({ invitationBehavior: inviteBehavior, inviteLinkControls: inviteControls })}>{t('save')}</Button>
           </div>
         </Card>
 
-        <Card title={t('featureVisibility')} subtitle="Overview summary blocks and plan visibility">
+        <Card title={t('featureVisibility')} subtitle="Overview blocks">
           <div className="form-grid single-col">
-            <CheckboxField
-              checked={visibility.showModuleBreakdown}
-              onChange={(checked) => setVisibility((current) => ({ ...current, showModuleBreakdown: checked }))}
-              label="Show module breakdown on overview"
-            />
-            <CheckboxField
-              checked={visibility.showEmployeeSummary}
-              onChange={(checked) => setVisibility((current) => ({ ...current, showEmployeeSummary: checked }))}
-              label="Show employee summary on overview"
-            />
-            <CheckboxField
-              checked={visibility.showRiskSummary}
-              onChange={(checked) => setVisibility((current) => ({ ...current, showRiskSummary: checked }))}
-              label="Show risk summary on overview"
-            />
-            <CheckboxField
-              checked={visibility.showPlanSummary}
-              onChange={(checked) => setVisibility((current) => ({ ...current, showPlanSummary: checked }))}
-              label="Show pricing and balance summary on overview"
-            />
+            <CheckboxField checked={visibility.showModuleBreakdown} onChange={(checked) => setVisibility((current) => ({ ...current, showModuleBreakdown: checked }))} label="Show module breakdown" />
+            <CheckboxField checked={visibility.showEmployeeSummary} onChange={(checked) => setVisibility((current) => ({ ...current, showEmployeeSummary: checked }))} label="Show employee summary" />
+            <CheckboxField checked={visibility.showRiskSummary} onChange={(checked) => setVisibility((current) => ({ ...current, showRiskSummary: checked }))} label="Show risk summary" />
+            <CheckboxField checked={visibility.showUsageSummary} onChange={(checked) => setVisibility((current) => ({ ...current, showUsageSummary: checked }))} label="Show pricing summary" />
           </div>
-          <div className="form-actions align-start">
+          <div className="form-actions align-start compact-actions">
             <Button onClick={() => saveDashboardPreferences(visibility)}>{t('save')}</Button>
           </div>
         </Card>
@@ -163,7 +150,7 @@ export function SettingsPage() {
           <div className="danger-row">
             <div>
               <div className="row-title">Delete business account</div>
-              <div className="row-meta">This is a frontend confirmation flow only.</div>
+              <div className="row-meta">Prototype confirmation only.</div>
             </div>
             <Button variant="danger" onClick={() => setDangerOpen(true)}>
               {t('deleteAccount')}

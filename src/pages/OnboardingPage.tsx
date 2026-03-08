@@ -7,7 +7,7 @@ import type { OnboardingDraft } from '../types'
 
 export function OnboardingPage() {
   const navigate = useNavigate()
-  const { onboardingDraft, completeOnboarding, supportedLanguages, modules, pricingPlans, copyInviteValue, t } = usePrototype()
+  const { onboardingDraft, completeOnboarding, supportedLanguages, modules, usageTiers, copyInviteValue, t } = usePrototype()
   const [step, setStep] = useState(0)
   const [inviteInput, setInviteInput] = useState('')
   const [draft, setDraft] = useState<OnboardingDraft>(onboardingDraft)
@@ -25,8 +25,9 @@ export function OnboardingPage() {
     () => draft.inviteLink || createInviteLink(draft.companyName || 'afensia-business'),
     [draft.companyName, draft.inviteLink],
   )
-  const selectedPlan = pricingPlans.find((plan) => plan.id === draft.selectedPlan) ?? pricingPlans[0]
-  const enabledModuleCount = modules.filter((module) => module.enabled).length
+  const selectedUsageTier = usageTiers.find((tier) => tier.id === draft.selectedUsageTier) ?? usageTiers[0]
+  const featuredModules = modules.slice(0, 6)
+  const themeLabel = draft.theme === 'light' ? t('lightMode') : t('darkMode')
 
   const addInvite = () => {
     const email = inviteInput.trim().toLowerCase()
@@ -77,8 +78,8 @@ export function OnboardingPage() {
             </div>
             <div className="onboarding-rail-summary">
               <div className="summary-block">
-                <span>Plan</span>
-                <strong>{selectedPlan.name}</strong>
+                <span>{t('usageTier')}</span>
+                <strong>{selectedUsageTier.name}</strong>
               </div>
               <div className="summary-block">
                 <span>{t('language')}</span>
@@ -86,7 +87,7 @@ export function OnboardingPage() {
               </div>
               <div className="summary-block">
                 <span>{t('theme')}</span>
-                <strong>{draft.theme}</strong>
+                <strong>{themeLabel}</strong>
               </div>
               <div className="summary-block">
                 <span>{t('inviteEmployee')}</span>
@@ -111,16 +112,16 @@ export function OnboardingPage() {
                 </div>
                 <div className="welcome-side-grid">
                   <div className="mini-highlight-card accent-card-blue">
-                    <span>{t('currentPlan')}</span>
-                    <strong>{selectedPlan.priceLabel}</strong>
+                    <span>{t('workspaceFee')}</span>
+                    <strong>$290 / month</strong>
                   </div>
                   <div className="mini-highlight-card accent-card-green">
-                    <span>{t('navModules')}</span>
-                    <strong>{enabledModuleCount} active modules</strong>
+                    <span>{t('usageTier')}</span>
+                    <strong>{selectedUsageTier.name}</strong>
                   </div>
                   <div className="mini-highlight-card accent-card-orange">
                     <span>{t('navEmployees')}</span>
-                    <strong>Mobile invite flow only</strong>
+                    <strong>Mobile invite only</strong>
                   </div>
                 </div>
               </div>
@@ -128,42 +129,37 @@ export function OnboardingPage() {
 
             {step === 1 ? (
               <div className="page-stack compact-stack">
-                <div className="feature-grid feature-grid-wide feature-grid-colored">
-                  {modules.map((module) => (
-                    <div key={module.id} className="feature-tile feature-tile-colored">
+                <div className="feature-grid feature-grid-wide feature-grid-colored compact-feature-grid">
+                  {featuredModules.map((module) => (
+                    <div key={module.id} className="feature-tile feature-tile-colored compact-feature-tile">
                       <div className="feature-tile-head">
-                        <div>
-                          <strong>{module.name}</strong>
-                          <div className="row-meta">{module.category}</div>
-                        </div>
+                        <strong>{module.name}</strong>
                         <Badge tone={module.status === 'Included' ? 'success' : module.status === 'Add-on' ? 'warning' : 'info'}>
                           {module.status}
                         </Badge>
                       </div>
-                      <p className="row-meta">{module.description}</p>
-                      <div className="module-pricing-line">
+                      <div className="module-pricing-line compact-module-pricing-line">
                         <span>{module.priceLabel}</span>
-                        <span>{module.note}</span>
+                        <span>{module.usageLabel}</span>
                       </div>
                     </div>
                   ))}
                 </div>
-                <div className="plan-grid">
-                  {pricingPlans.map((plan) => (
+                <div className="usage-tier-grid usage-tier-grid-compact">
+                  {usageTiers.map((tier) => (
                     <button
-                      key={plan.id}
+                      key={tier.id}
                       type="button"
-                      className={plan.id === draft.selectedPlan ? 'plan-card plan-card-active' : 'plan-card'}
-                      onClick={() => setDraft((current) => ({ ...current, selectedPlan: plan.id }))}
+                      className={tier.id === draft.selectedUsageTier ? 'usage-tier-card usage-tier-card-active' : 'usage-tier-card'}
+                      onClick={() => setDraft((current) => ({ ...current, selectedUsageTier: tier.id }))}
                     >
-                      <div className="plan-card-head">
-                        <strong>{plan.name}</strong>
-                        {plan.highlight ? <Badge tone="info">Recommended</Badge> : null}
+                      <div className="usage-tier-topline">
+                        <strong>{tier.name}</strong>
+                        {tier.highlight ? <Badge tone="info">Most used</Badge> : null}
                       </div>
-                      <div className="plan-card-price">{plan.priceLabel}</div>
-                      <div className="row-meta">{plan.billingNote}</div>
-                      <p className="plan-card-copy">{plan.description}</p>
-                      <div className="plan-card-meta">{plan.seats}</div>
+                      <div className="usage-tier-price">{tier.priceLabel}</div>
+                      <div className="row-meta">{tier.billingNote}</div>
+                      <div className="usage-tier-foot">{tier.bestFor}</div>
                     </button>
                   ))}
                 </div>
@@ -173,56 +169,28 @@ export function OnboardingPage() {
             {step === 2 ? (
               <div className="onboarding-step-layout onboarding-form-layout">
                 <div className="form-grid two-col">
-                  <InputField
-                    label={t('companyName')}
-                    value={draft.companyName}
-                    onChange={(event) => setDraft((current) => ({ ...current, companyName: event.target.value }))}
-                  />
-                  <InputField
-                    label={t('industry')}
-                    value={draft.industry}
-                    onChange={(event) => setDraft((current) => ({ ...current, industry: event.target.value }))}
-                  />
-                  <SelectField
-                    label={t('teamSize')}
-                    value={draft.teamSize}
-                    onChange={(event) => setDraft((current) => ({ ...current, teamSize: event.target.value }))}
-                  >
+                  <InputField label={t('companyName')} value={draft.companyName} onChange={(event) => setDraft((current) => ({ ...current, companyName: event.target.value }))} />
+                  <InputField label={t('industry')} value={draft.industry} onChange={(event) => setDraft((current) => ({ ...current, industry: event.target.value }))} />
+                  <SelectField label={t('teamSize')} value={draft.teamSize} onChange={(event) => setDraft((current) => ({ ...current, teamSize: event.target.value }))}>
                     <option>1-10 employees</option>
                     <option>11-50 employees</option>
                     <option>51-200 employees</option>
                     <option>201-500 employees</option>
                     <option>500+ employees</option>
                   </SelectField>
-                  <InputField
-                    label={t('countryRegion')}
-                    value={draft.countryRegion}
-                    onChange={(event) => setDraft((current) => ({ ...current, countryRegion: event.target.value }))}
-                  />
-                  <InputField
-                    label={t('website')}
-                    value={draft.website}
-                    onChange={(event) => setDraft((current) => ({ ...current, website: event.target.value }))}
-                  />
-                  <InputField
-                    label={t('linkedIn')}
-                    value={draft.linkedIn}
-                    onChange={(event) => setDraft((current) => ({ ...current, linkedIn: event.target.value }))}
-                  />
+                  <InputField label={t('countryRegion')} value={draft.countryRegion} onChange={(event) => setDraft((current) => ({ ...current, countryRegion: event.target.value }))} />
+                  <InputField label={t('website')} value={draft.website} onChange={(event) => setDraft((current) => ({ ...current, website: event.target.value }))} />
+                  <InputField label={t('linkedIn')} value={draft.linkedIn} onChange={(event) => setDraft((current) => ({ ...current, linkedIn: event.target.value }))} />
                 </div>
-                <Card className="setup-side-card" title="What helps later" subtitle="Useful profile signals for the developer handoff">
+                <Card className="setup-side-card" title="Profile" subtitle="Used for account setup">
                   <div className="summary-list compact-summary-list">
                     <div className="summary-row compact-row">
-                      <span className="row-title">Country and region</span>
-                      <span className="row-meta">Used for localized messaging and future policy controls.</span>
+                      <span className="row-title">Region</span>
+                      <span className="row-meta">Used for locale and account context.</span>
                     </div>
                     <div className="summary-row compact-row">
-                      <span className="row-title">Website and LinkedIn</span>
-                      <span className="row-meta">Helpful for account verification and company context.</span>
-                    </div>
-                    <div className="summary-row compact-row">
-                      <span className="row-title">Team size</span>
-                      <span className="row-meta">Shapes invite defaults, pricing, and rollout recommendations.</span>
+                      <span className="row-title">Company links</span>
+                      <span className="row-meta">Used for account review.</span>
                     </div>
                   </div>
                 </Card>
@@ -232,12 +200,7 @@ export function OnboardingPage() {
             {step === 3 ? (
               <div className="page-stack compact-stack">
                 <div className="invite-toolbar invite-toolbar-refined">
-                  <InputField
-                    label="Employee email"
-                    value={inviteInput}
-                    onChange={(event) => setInviteInput(event.target.value)}
-                    placeholder="employee@company.com"
-                  />
+                  <InputField label="Employee email" value={inviteInput} onChange={(event) => setInviteInput(event.target.value)} placeholder="employee@company.com" />
                   <Button variant="secondary" onClick={addInvite}>
                     Add
                   </Button>
@@ -250,15 +213,7 @@ export function OnboardingPage() {
                       <span className="field-hint">{t('onboardingInviteHint')}</span>
                     </div>
                     <div className="button-row">
-                      <Button
-                        variant="secondary"
-                        onClick={() =>
-                          setDraft((current) => ({
-                            ...current,
-                            inviteLink: createInviteLink(`${current.companyName}-${Date.now()}`),
-                          }))
-                        }
-                      >
+                      <Button variant="secondary" onClick={() => setDraft((current) => ({ ...current, inviteLink: createInviteLink(`${current.companyName}-${Date.now()}`) }))}>
                         {t('generateLink')}
                       </Button>
                       <Button variant="ghost" onClick={() => copyInviteValue(inviteLink)}>
@@ -271,16 +226,7 @@ export function OnboardingPage() {
                       draft.invitedEmails.map((email) => (
                         <div key={email} className="invite-row">
                           <span>{email}</span>
-                          <button
-                            type="button"
-                            className="text-link"
-                            onClick={() =>
-                              setDraft((current) => ({
-                                ...current,
-                                invitedEmails: current.invitedEmails.filter((entry) => entry !== email),
-                              }))
-                            }
-                          >
+                          <button type="button" className="text-link" onClick={() => setDraft((current) => ({ ...current, invitedEmails: current.invitedEmails.filter((entry) => entry !== email) }))}>
                             {t('remove')}
                           </button>
                         </div>
@@ -298,7 +244,7 @@ export function OnboardingPage() {
 
             {step === 4 ? (
               <div className="onboarding-step-layout onboarding-form-layout">
-                <Card title={t('theme')} subtitle="Applies to the full console prototype">
+                <Card title={t('theme')} subtitle="Applies to the console">
                   <SegmentedControl
                     value={draft.theme}
                     onChange={(value) => setDraft((current) => ({ ...current, theme: value }))}
@@ -308,15 +254,10 @@ export function OnboardingPage() {
                     ]}
                   />
                 </Card>
-                <Card title={t('language')} subtitle="All requested languages are live in the prototype">
+                <Card title={t('language')} subtitle="All requested languages are available">
                   <div className="language-option-grid">
                     {supportedLanguages.map((language) => (
-                      <button
-                        key={language.code}
-                        type="button"
-                        className={language.code === draft.language ? 'language-option language-option-active' : 'language-option'}
-                        onClick={() => setDraft((current) => ({ ...current, language: language.code }))}
-                      >
+                      <button key={language.code} type="button" className={language.code === draft.language ? 'language-option language-option-active' : 'language-option'} onClick={() => setDraft((current) => ({ ...current, language: language.code }))}>
                         <strong>{language.nativeLabel}</strong>
                         <span>{language.label}</span>
                         <Badge tone={language.dir === 'rtl' ? 'warning' : 'info'}>{language.dir.toUpperCase()}</Badge>
@@ -335,27 +276,19 @@ export function OnboardingPage() {
                     <div>{t('onboardingAccountReady')}</div>
                     <div>{draft.companyName}</div>
                     <div>{t('onboardingEmployeesInvited', { count: draft.invitedEmails.length })}</div>
-                    <div>{t('onboardingSelectedTheme', { value: draft.theme })}</div>
-                    <div>
-                      {t('onboardingSelectedLanguage', {
-                        value: supportedLanguages.find((item) => item.code === draft.language)?.nativeLabel ?? draft.language,
-                      })}
-                    </div>
+                    <div>{t('onboardingSelectedTheme', { value: themeLabel })}</div>
+                    <div>{t('onboardingSelectedLanguage', { value: supportedLanguages.find((item) => item.code === draft.language)?.nativeLabel ?? draft.language })}</div>
                   </div>
                 </div>
-                <Card className="setup-side-card" title="Selected commercial setup" subtitle="Shown for developer planning">
+                <Card className="setup-side-card" title="Pricing" subtitle="Selected usage model">
                   <div className="summary-list compact-summary-list">
                     <div className="summary-row compact-row">
-                      <span className="row-title">Plan</span>
-                      <span className="row-meta">{selectedPlan.name}</span>
+                      <span className="row-title">{t('usageTier')}</span>
+                      <span className="row-meta">{selectedUsageTier.name}</span>
                     </div>
                     <div className="summary-row compact-row">
-                      <span className="row-title">Pricing</span>
-                      <span className="row-meta">{selectedPlan.priceLabel}</span>
-                    </div>
-                    <div className="summary-row compact-row">
-                      <span className="row-title">Included modules</span>
-                      <span className="row-meta">{selectedPlan.includedModules.length}</span>
+                      <span className="row-title">{t('pricingSummary')}</span>
+                      <span className="row-meta">{selectedUsageTier.priceLabel}</span>
                     </div>
                   </div>
                 </Card>

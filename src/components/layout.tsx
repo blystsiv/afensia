@@ -1,7 +1,7 @@
 import { LogOut, ShieldCheck } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { usePrototype } from '../context/PrototypeContext'
-import { formatCurrency } from '../lib/format'
+import { formatCurrency, formatNumber } from '../lib/format'
 import { cx } from '../lib/format'
 import { Button, ToastViewport } from './ui'
 
@@ -26,10 +26,10 @@ export function AuthLayout() {
 
 export function DashboardLayout() {
   const navigate = useNavigate()
-  const { company, modules, balance, pricingPlans, themeMode, uiLanguage, toasts, dismissToast, t, supportedLanguages } = usePrototype()
-  const enabledModules = modules.filter((module) => module.enabled).length
-  const currentPlan = pricingPlans.find((plan) => plan.id === balance.planId)
+  const { company, balance, usageTiers, themeMode, uiLanguage, toasts, dismissToast, t, supportedLanguages } = usePrototype()
+  const currentUsageTier = usageTiers.find((tier) => tier.id === balance.usageTierId)
   const currentLanguage = supportedLanguages.find((language) => language.code === uiLanguage)
+  const themeLabel = themeMode === 'light' ? 'Light' : 'Dark'
   const navigation = [
     { label: t('navOverview'), to: '/app/overview' },
     { label: t('navEmployees'), to: '/app/employees' },
@@ -61,8 +61,8 @@ export function DashboardLayout() {
               </div>
             </div>
             <div className="sidebar-plan-chip">
-              <span>{t('currentPlan')}</span>
-              <strong>{currentPlan?.name}</strong>
+              <span>{t('usageTier')}</span>
+              <strong>{currentUsageTier?.name}</strong>
             </div>
             <div className="sidebar-company-stats">
               <div>
@@ -70,8 +70,8 @@ export function DashboardLayout() {
                 <strong>{formatCurrency(balance.remainingBalance, balance.currency)}</strong>
               </div>
               <div>
-                <span>{t('navModules')}</span>
-                <strong>{enabledModules}</strong>
+                <span>{t('creditsUsed')}</span>
+                <strong>{formatNumber(balance.usedCredits)}</strong>
               </div>
             </div>
           </div>
@@ -92,7 +92,7 @@ export function DashboardLayout() {
         <div className="sidebar-footer">
           <div className="sidebar-meta sidebar-meta-rich">
             <span>{currentLanguage?.nativeLabel ?? uiLanguage.toUpperCase()}</span>
-            <span>{themeMode}</span>
+            <span>{themeLabel}</span>
           </div>
           <Button variant="ghost" className="logout-button" onClick={() => navigate('/signin')}>
             <LogOut size={16} />

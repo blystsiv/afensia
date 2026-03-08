@@ -43,7 +43,7 @@ export function OverviewPage() {
     employees,
     modules,
     balance,
-    pricingPlans,
+    usageTiers,
     analyticsSnapshots,
     uiLanguage,
     themeMode,
@@ -59,8 +59,10 @@ export function OverviewPage() {
   const topEmployees = [...activeEmployees].sort((a, b) => b.totalChecks - a.totalChecks).slice(0, 4)
   const topModules = [...enabledModules].sort((a, b) => b.usageCount - a.usageCount).slice(0, 4)
   const riskRate = ((snapshot.riskyFindings / snapshot.totalChecks) * 100).toFixed(1)
-  const currentPlan = pricingPlans.find((plan) => plan.id === balance.planId) ?? pricingPlans[0]
+  const currentUsageTier = usageTiers.find((tier) => tier.id === balance.usageTierId) ?? usageTiers[0]
   const currentLanguage = supportedLanguages.find((language) => language.code === uiLanguage)
+  const themeLabel = themeMode === 'light' ? 'Light' : 'Dark'
+  const usageProgress = Math.min(100, Math.round((balance.usedCredits / balance.monthlyAllowance) * 100))
 
   if (loading) {
     return <OverviewSkeleton />
@@ -68,13 +70,13 @@ export function OverviewPage() {
 
   const sideBlocks = [
     dashboardPreferences.showModuleBreakdown ? (
-      <Card key="modules" title={t('featureUsageBreakdown')} subtitle="Enabled modules this period">
+      <Card key="modules" title={t('featureUsageBreakdown')} subtitle="Top modules this month">
         <div className="summary-list compact-summary-list">
           {topModules.map((module) => (
             <div key={module.id} className="summary-row compact-row">
               <div>
                 <div className="row-title">{module.name}</div>
-                <div className="row-meta">{module.category}</div>
+                <div className="row-meta">{module.usageLabel}</div>
               </div>
               <div className="row-value">{formatNumber(module.usageCount)}</div>
             </div>
@@ -83,7 +85,7 @@ export function OverviewPage() {
       </Card>
     ) : null,
     dashboardPreferences.showEmployeeSummary ? (
-      <Card key="employees" title={t('employeeSummary')} subtitle="Top usage this month">
+      <Card key="employees" title={t('employeeSummary')} subtitle="Most active people">
         <div className="summary-list compact-summary-list">
           {topEmployees.map((employee) => (
             <div key={employee.id} className="summary-row compact-row">
@@ -101,7 +103,7 @@ export function OverviewPage() {
       </Card>
     ) : null,
     dashboardPreferences.showRiskSummary ? (
-      <Card key="risk" title={t('riskSummary')} subtitle={t('businessSecurityStatus')}>
+      <Card key="risk" title={t('riskSummary')} subtitle="Current period">
         <div className="summary-list compact-summary-list">
           <div className="summary-row compact-row">
             <span className="row-title">{t('riskyFindings')}</span>
@@ -112,30 +114,35 @@ export function OverviewPage() {
             <span className="row-value">{riskRate}%</span>
           </div>
           <div className="summary-row compact-row">
-            <span className="row-title">{t('remainingBalance')}</span>
-            <span className="row-value">{formatCurrency(balance.remainingBalance, balance.currency)}</span>
-          </div>
-          <div className="summary-row compact-row">
             <span className="row-title">{t('pendingInvites')}</span>
             <span className="row-value">{formatNumber(invitedEmployees.length)}</span>
           </div>
         </div>
       </Card>
     ) : null,
-    dashboardPreferences.showPlanSummary ? (
-      <Card key="plan" title={t('pricingSummary')} subtitle="Usage-based commercial view">
+    dashboardPreferences.showUsageSummary ? (
+      <Card key="usage" title={t('pricingSummary')} subtitle="Current usage and credits">
         <div className="summary-list compact-summary-list">
           <div className="summary-row compact-row">
-            <span className="row-title">{t('currentPlan')}</span>
-            <span className="row-value">{currentPlan.name}</span>
+            <span className="row-title">{t('workspaceFee')}</span>
+            <span className="row-value">{formatCurrency(balance.workspaceFee, balance.currency)}</span>
           </div>
           <div className="summary-row compact-row">
-            <span className="row-title">Pricing</span>
-            <span className="row-meta">{currentPlan.priceLabel}</span>
+            <span className="row-title">{t('usageTier')}</span>
+            <span className="row-meta">{currentUsageTier.name}</span>
           </div>
           <div className="summary-row compact-row">
-            <span className="row-title">Credits</span>
-            <span className="row-meta">{balance.creditModel}</span>
+            <span className="row-title">{t('creditsUsed')}</span>
+            <span className="row-meta">{formatNumber(balance.usedCredits)} / {formatNumber(balance.monthlyAllowance)}</span>
+          </div>
+          <div className="usage-meter">
+            <div className="usage-meter-head">
+              <span>{usageProgress}% used</span>
+              <strong>{formatNumber(balance.monthlyAllowance - balance.usedCredits)} left</strong>
+            </div>
+            <div className="usage-meter-track">
+              <span style={{ width: `${usageProgress}%` }} />
+            </div>
           </div>
           <div className="summary-row compact-row">
             <span className="row-title">Renewal</span>
@@ -162,11 +169,11 @@ export function OverviewPage() {
           </div>
           <div>
             <span className="meta-label">{t('theme')}</span>
-            <strong>{themeMode}</strong>
+            <strong>{themeLabel}</strong>
           </div>
           <div>
-            <span className="meta-label">{t('currentPlan')}</span>
-            <strong>{currentPlan.name}</strong>
+            <span className="meta-label">{t('usageTier')}</span>
+            <strong>{currentUsageTier.name}</strong>
           </div>
           <div>
             <span className="meta-label">{t('navModules')}</span>
@@ -180,9 +187,9 @@ export function OverviewPage() {
         <StatCard label={t('activeEmployees')} value={formatNumber(activeEmployees.length)} />
         <StatCard label={t('totalChecks')} value={formatNumber(snapshot.totalChecks)} meta={t('currentPeriod')} />
         <StatCard label={t('riskyFindings')} value={formatNumber(snapshot.riskyFindings)} />
-        <StatCard label={t('totalBalance')} value={formatCurrency(balance.totalBalance, balance.currency)} />
+        <StatCard label={t('workspaceFee')} value={formatCurrency(balance.workspaceFee, balance.currency)} />
+        <StatCard label={t('creditsUsed')} value={formatNumber(balance.usedCredits)} />
         <StatCard label={t('remainingBalance')} value={formatCurrency(balance.remainingBalance, balance.currency)} />
-        <StatCard label={t('pendingInvites')} value={formatNumber(invitedEmployees.length)} />
       </section>
 
       <section className="overview-main-grid overview-main-grid-extended">

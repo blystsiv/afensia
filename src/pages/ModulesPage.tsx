@@ -15,13 +15,18 @@ function ModulesSkeleton() {
           </Card>
         ))}
       </div>
-      <Card>
-        <SkeletonBlock lines={6} />
-      </Card>
-      <div className="module-grid module-grid-expanded">
-        {Array.from({ length: 6 }).map((_, index) => (
+      <div className="module-pricing-layout">
+        <Card>
+          <SkeletonBlock lines={8} />
+        </Card>
+        <Card>
+          <SkeletonBlock lines={6} />
+        </Card>
+      </div>
+      <div className="module-section-grid">
+        {Array.from({ length: 2 }).map((_, index) => (
           <Card key={index}>
-            <SkeletonBlock lines={6} />
+            <SkeletonBlock lines={8} />
           </Card>
         ))}
       </div>
@@ -30,14 +35,18 @@ function ModulesSkeleton() {
 }
 
 export function ModulesPage() {
-  const { modules, balance, pricingPlans, t } = usePrototype()
+  const { modules, balance, usageTiers, t } = usePrototype()
   const loading = useSimulatedLoading('modules-console', 260)
   const [selectedModule, setSelectedModule] = useState<SecurityModule | null>(null)
 
-  const currentPlan = useMemo(() => pricingPlans.find((plan) => plan.id === balance.planId) ?? pricingPlans[0], [balance.planId, pricingPlans])
-  const activeModules = useMemo(() => modules.filter((module) => module.enabled), [modules])
-  const addOnModules = useMemo(() => modules.filter((module) => module.status === 'Add-on').length, [modules])
-  const upcomingModules = useMemo(() => modules.filter((module) => module.status === 'Coming soon').length, [modules])
+  const currentUsageTier = useMemo(
+    () => usageTiers.find((tier) => tier.id === balance.usageTierId) ?? usageTiers[0],
+    [balance.usageTierId, usageTiers],
+  )
+  const includedModules = useMemo(() => modules.filter((module) => module.status === 'Included'), [modules])
+  const addOnModules = useMemo(() => modules.filter((module) => module.status !== 'Included'), [modules])
+  const activeAddOns = useMemo(() => modules.filter((module) => module.status === 'Add-on' && module.enabled).length, [modules])
+  const usageProgress = Math.min(100, Math.round((balance.usedCredits / balance.monthlyAllowance) * 100))
 
   if (loading) {
     return <ModulesSkeleton />
@@ -48,82 +57,115 @@ export function ModulesPage() {
       <PageHeader title={t('navModules')} description={t('modulesDescription')} />
 
       <section className="stats-grid four-up">
-        <StatCard label={t('currentPlan')} value={currentPlan.name} meta={currentPlan.priceLabel} />
-        <StatCard label={t('remainingBalance')} value={formatCurrency(balance.remainingBalance, balance.currency)} meta={balance.creditModel} />
-        <StatCard label={t('modulesIncluded')} value={formatNumber(activeModules.length)} meta={t('pricingAndCoverage')} />
-        <StatCard label={t('modulesAddOn')} value={formatNumber(addOnModules + upcomingModules)} meta="Optional and roadmap modules" />
+        <StatCard label={t('workspaceFee')} value={formatCurrency(balance.workspaceFee, balance.currency)} />
+        <StatCard label={t('usageTier')} value={currentUsageTier.name} meta={currentUsageTier.billingNote} />
+        <StatCard label={t('creditsUsed')} value={formatNumber(balance.usedCredits)} meta={`${formatNumber(balance.monthlyAllowance)} included credits`} />
+        <StatCard label={t('featureAddOns')} value={formatNumber(activeAddOns)} meta="Active add-ons" />
       </section>
 
-      <Card title={t('pricingAndCoverage')} subtitle="Plan cards are shown as product direction for the developer build">
-        <div className="plan-grid">
-          {pricingPlans.map((plan) => (
-            <div key={plan.id} className={plan.id === balance.planId ? 'plan-card plan-card-active' : 'plan-card'}>
-              <div className="plan-card-head">
-                <strong>{plan.name}</strong>
-                {plan.id === balance.planId ? <Badge tone="info">Current</Badge> : null}
+      <section className="module-pricing-layout">
+        <Card title={t('pricingAndCoverage')} subtitle="Usage volume and add-on pricing">
+          <div className="usage-tier-grid">
+            {usageTiers.map((tier) => (
+              <div key={tier.id} className={tier.id === balance.usageTierId ? 'usage-tier-card usage-tier-card-active' : 'usage-tier-card'}>
+                <div className="usage-tier-topline">
+                  <strong>{tier.name}</strong>
+                  {tier.highlight ? <Badge tone="info">Most used</Badge> : null}
+                </div>
+                <div className="usage-tier-price">{tier.priceLabel}</div>
+                <div className="row-meta">{tier.billingNote}</div>
+                <div className="usage-tier-copy">{tier.description}</div>
+                <div className="usage-tier-foot">{tier.bestFor}</div>
               </div>
-              <div className="plan-card-price">{plan.priceLabel}</div>
-              <div className="row-meta">{plan.billingNote}</div>
-              <p className="plan-card-copy">{plan.description}</p>
-              <div className="plan-card-meta">{plan.seats}</div>
-              <div className="module-pill-row">
-                {plan.includedModules.slice(0, 3).map((module) => (
-                  <Badge key={module} tone="neutral">
-                    {module}
-                  </Badge>
-                ))}
-                {plan.includedModules.length > 3 ? <Badge tone="neutral">+{plan.includedModules.length - 3}</Badge> : null}
-              </div>
+            ))}
+          </div>
+          <div className="pricing-rule-strip">
+            <div>
+              <span className="meta-label">Core modules</span>
+              <strong>1 credit per check</strong>
             </div>
-          ))}
-        </div>
-      </Card>
+            <div>
+              <span className="meta-label">Advanced verification</span>
+              <strong>2 credits per check</strong>
+            </div>
+            <div>
+              <span className="meta-label">Deepfake scans</span>
+              <strong>5 credits per scan</strong>
+            </div>
+          </div>
+        </Card>
 
-      <section className="module-grid module-grid-expanded">
-        {modules.map((module) => {
-          const tone = module.status === 'Included' ? 'success' : module.status === 'Add-on' ? 'warning' : 'info'
-          const ctaLabel = module.status === 'Included' ? 'Included in plan' : module.status === 'Add-on' ? 'Upgrade path' : 'Roadmap'
+        <Card title="Current pricing" subtitle="NorthHill workspace">
+          <div className="usage-meter usage-meter-card">
+            <div className="usage-meter-head">
+              <span>{usageProgress}% used</span>
+              <strong>{formatNumber(balance.monthlyAllowance - balance.usedCredits)} credits left</strong>
+            </div>
+            <div className="usage-meter-track">
+              <span style={{ width: `${usageProgress}%` }} />
+            </div>
+          </div>
+          <div className="summary-list compact-summary-list">
+            <div className="summary-row compact-row">
+              <span className="row-title">{t('workspaceFee')}</span>
+              <span className="row-value">{formatCurrency(balance.workspaceFee, balance.currency)}</span>
+            </div>
+            <div className="summary-row compact-row">
+              <span className="row-title">{t('usageTier')}</span>
+              <span className="row-meta">{currentUsageTier.name}</span>
+            </div>
+            <div className="summary-row compact-row">
+              <span className="row-title">{t('creditAllowance')}</span>
+              <span className="row-meta">{formatNumber(balance.monthlyAllowance)} credits</span>
+            </div>
+            <div className="summary-row compact-row">
+              <span className="row-title">{t('remainingBalance')}</span>
+              <span className="row-meta">{formatCurrency(balance.remainingBalance, balance.currency)}</span>
+            </div>
+            <div className="summary-row compact-row">
+              <span className="row-title">Renewal</span>
+              <span className="row-meta">{balance.renewalDate}</span>
+            </div>
+          </div>
+        </Card>
+      </section>
 
-          return (
-            <Card key={module.id} className="module-card module-card-refined">
-              <div className="module-card-head">
-                <div>
-                  <div className="module-category-line">{module.category}</div>
-                  <h2 className="ui-card-title">{module.name}</h2>
-                  <p className="ui-card-subtitle">{module.description}</p>
+      <section className="module-section-grid">
+        <Card title="Core protection" subtitle="Included in workspace access">
+          <div className="module-grid module-grid-compact">
+            {includedModules.map((module) => (
+              <button key={module.id} type="button" className="module-list-card" onClick={() => setSelectedModule(module)}>
+                <div className="module-list-head">
+                  <strong>{module.name}</strong>
+                  <Badge tone="success">{module.status}</Badge>
                 </div>
-                <div className="module-badge-row">
-                  <Badge tone={tone}>{module.status}</Badge>
-                  <Badge tone={module.tier === 'Core' ? 'info' : module.tier === 'Advanced' ? 'warning' : 'neutral'}>{module.tier}</Badge>
+                <div className="module-list-copy">{module.description}</div>
+                <div className="module-list-meta">
+                  <span>{module.usageLabel}</span>
+                  <span>{formatNumber(module.usageCount)} checks</span>
                 </div>
-              </div>
-              <div className="module-usage-strip">
-                <div>
-                  <span className="meta-label">{t('modulesUsageThisPeriod')}</span>
-                  <strong className="module-usage-number">{formatNumber(module.usageCount)}</strong>
+              </button>
+            ))}
+          </div>
+        </Card>
+
+        <Card title={t('featureAddOns')} subtitle="Optional and upcoming modules">
+          <div className="module-grid module-grid-compact">
+            {addOnModules.map((module) => (
+              <button key={module.id} type="button" className="module-list-card module-list-card-muted" onClick={() => setSelectedModule(module)}>
+                <div className="module-list-head">
+                  <strong>{module.name}</strong>
+                  <Badge tone={module.status === 'Add-on' ? 'warning' : 'info'}>{module.status}</Badge>
                 </div>
-                <div>
-                  <span className="meta-label">{t('currentPlan')}</span>
-                  <strong>{module.plan === 'addon' ? 'Add-on' : pricingPlans.find((plan) => plan.id === module.plan)?.name}</strong>
-                </div>
-              </div>
-              <div className="module-pricing-panel">
-                <div className="module-pricing-line module-pricing-line-strong">
+                <div className="module-list-copy">{module.description}</div>
+                <div className="module-list-meta">
                   <span>{module.priceLabel}</span>
-                  <span>{module.note}</span>
+                  <span>{module.usageLabel}</span>
                 </div>
-              </div>
-              <div className="module-card-actions">
-                <Button variant="secondary" onClick={() => setSelectedModule(module)}>
-                  {t('modulesViewDetails')}
-                </Button>
-                <Button variant={module.status === 'Included' ? 'primary' : 'ghost'} disabled>
-                  {ctaLabel}
-                </Button>
-              </div>
-            </Card>
-          )
-        })}
+              </button>
+            ))}
+          </div>
+        </Card>
       </section>
 
       <Modal
@@ -144,17 +186,16 @@ export function ModulesPage() {
               <strong>{selectedModule.status}</strong>
             </div>
             <div className="detail-item">
-              <span>{t('currentPlan')}</span>
-              <strong>{selectedModule.plan === 'addon' ? 'Add-on' : pricingPlans.find((plan) => plan.id === selectedModule.plan)?.name}</strong>
-            </div>
-            <div className="detail-item">
-              <span>{t('modulesUsageThisPeriod')}</span>
-              <strong>{formatNumber(selectedModule.usageCount)}</strong>
-            </div>
-            <div className="detail-item detail-item-span">
               <span>{t('pricingAndCoverage')}</span>
               <strong>{selectedModule.priceLabel}</strong>
-              <div className="row-meta">{selectedModule.note}</div>
+            </div>
+            <div className="detail-item">
+              <span>Usage rule</span>
+              <strong>{selectedModule.usageLabel}</strong>
+            </div>
+            <div className="detail-item detail-item-span">
+              <span>Note</span>
+              <strong>{selectedModule.note}</strong>
             </div>
           </div>
         ) : null}

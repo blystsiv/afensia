@@ -16,7 +16,7 @@ import {
   initialEmployees,
   initialModules,
   initialOnboardingDraft,
-  pricingPlans,
+  usageTiers,
 } from '../data/mockData'
 import { createInviteLink, copyText, inferNameFromEmail } from '../lib/format'
 import { languageMeta, supportedLanguages, translate, type TranslationKey } from '../lib/i18n'
@@ -26,12 +26,12 @@ import type {
   DashboardPreferences,
   Employee,
   OnboardingDraft,
-  PricingPlan,
   SecurityModule,
   ThemeMode,
   ToastMessage,
   ToastTone,
   UILanguage,
+  UsageTier,
 } from '../types'
 
 interface RegistrationPayload {
@@ -55,7 +55,7 @@ interface PrototypeContextValue {
   employees: Employee[]
   modules: SecurityModule[]
   balance: AccountBalance
-  pricingPlans: PricingPlan[]
+  usageTiers: UsageTier[]
   onboardingDraft: OnboardingDraft
   onboardingCompleted: boolean
   dashboardPreferences: DashboardPreferences
@@ -268,7 +268,12 @@ export function PrototypeProvider({ children }: { children: ReactNode }) {
           inviteEmployee(email)
         }
       })
-      setBalance((current) => ({ ...current, planId: draft.selectedPlan }))
+      setBalance((current) => ({
+        ...current,
+        usageTierId: draft.selectedUsageTier,
+        monthlyAllowance:
+          usageTiers.find((tier) => tier.id === draft.selectedUsageTier)?.checksIncluded ?? current.monthlyAllowance,
+      }))
       setThemeMode(draft.theme)
       setUiLanguage(draft.language)
       setOnboardingDraft(draft)
@@ -294,7 +299,7 @@ export function PrototypeProvider({ children }: { children: ReactNode }) {
       employees,
       modules,
       balance,
-      pricingPlans,
+      usageTiers,
       onboardingDraft,
       onboardingCompleted,
       dashboardPreferences,

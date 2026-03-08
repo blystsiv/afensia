@@ -5,7 +5,7 @@ export type UILanguage = 'en' | 'fr' | 'hi' | 'nl' | 'ar' | 'es' | 'de' | 'it' |
 export type AnalyticsRange = '7d' | '30d' | '90d' | 'custom'
 export type ModuleStatus = 'Included' | 'Add-on' | 'Coming soon'
 export type ModuleTier = 'Core' | 'Advanced' | 'Enterprise'
-export type PricingPlanId = 'starter' | 'growth' | 'enterprise'
+export type UsageTierId = 'entry' | 'team' | 'scale'
 
 export interface Employee {
   id: string
@@ -45,19 +45,20 @@ export interface SecurityModule {
   usageCount: number
   tier: ModuleTier
   category: string
-  plan: PricingPlanId | 'addon'
+  availableFrom: UsageTierId | 'addon' | 'future'
   priceLabel: string
+  usageLabel: string
   note: string
 }
 
-export interface PricingPlan {
-  id: PricingPlanId
+export interface UsageTier {
+  id: UsageTierId
   name: string
   priceLabel: string
   billingNote: string
   description: string
-  seats: string
-  includedModules: string[]
+  bestFor: string
+  checksIncluded: number | null
   highlight?: boolean
 }
 
@@ -117,7 +118,10 @@ export interface AccountBalance {
   totalBalance: number
   remainingBalance: number
   currency: string
-  planId: PricingPlanId
+  workspaceFee: number
+  monthlyAllowance: number
+  usedCredits: number
+  usageTierId: UsageTierId
   creditModel: string
   renewalDate: string
 }
@@ -126,7 +130,7 @@ export interface DashboardPreferences {
   showModuleBreakdown: boolean
   showEmployeeSummary: boolean
   showRiskSummary: boolean
-  showPlanSummary: boolean
+  showUsageSummary: boolean
 }
 
 export interface OnboardingDraft {
@@ -140,7 +144,7 @@ export interface OnboardingDraft {
   inviteLink: string
   theme: ThemeMode
   language: UILanguage
-  selectedPlan: PricingPlanId
+  selectedUsageTier: UsageTierId
 }
 
 export interface ToastMessage {
