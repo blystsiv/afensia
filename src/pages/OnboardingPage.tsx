@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { StripePreviewModal } from '../components/stripePreviewModal'
 import { Badge, Button, Card, InputField, PageHeader, SegmentedControl, SelectField } from '../components/ui'
 import { usePrototype } from '../context/PrototypeContext'
 import { createInviteLink, formatCurrency } from '../lib/format'
 import type { OnboardingDraft, SecurityModule, UsageTierId } from '../types'
+
+type BillingMode = 'auto-top-up' | 'manual-top-up' | 'monthly-invoice'
 
 export function OnboardingPage() {
   const navigate = useNavigate()
@@ -11,10 +14,13 @@ export function OnboardingPage() {
   const [step, setStep] = useState(0)
   const [inviteInput, setInviteInput] = useState('')
   const [draft, setDraft] = useState<OnboardingDraft>(onboardingDraft)
+  const [billingMode, setBillingMode] = useState<BillingMode>('auto-top-up')
+  const [paymentPreviewOpen, setPaymentPreviewOpen] = useState(false)
 
   const steps = [
     t('onboardingWelcome'),
     t('onboardingFeatures'),
+    t('onboardingPayment'),
     t('onboardingCompany'),
     t('onboardingInvite'),
     t('onboardingPreferences'),
@@ -33,22 +39,50 @@ export function OnboardingPage() {
       ),
     [modules],
   )
+  const enabledModulesCount = useMemo(() => modules.filter((module) => module.enabled).length, [modules])
   const themeLabel = draft.theme === 'light' ? t('lightMode') : t('darkMode')
+  const selectedLanguageLabel = supportedLanguages.find((language) => language.code === draft.language)?.nativeLabel ?? draft.language
   const selectedUsageIndex = Math.max(0, usageTiers.findIndex((tier) => tier.id === draft.selectedUsageTier))
   const usageProgress = usageTiers.length > 1 ? (selectedUsageIndex / (usageTiers.length - 1)) * 100 : 0
+  const paymentModeLabel = billingMode === 'auto-top-up' ? t('autoTopUp') : billingMode === 'manual-top-up' ? t('manualTopUp') : t('monthlyInvoice')
+  const selectedRate = selectedUsageTier.creditRate ?? balance.creditUnitPrice
   const tierFeatures: Record<UsageTierId, string[]> = {
-    entry: ['Core link, QR, and message checks', '1,000 included credits', 'Best for smaller teams'],
-    team: ['Daily team coverage', '5,000 included credits', 'Lower cost per credit'],
-    scale: ['Custom volume and rollout', 'Large usage allowance', 'Best for distributed teams'],
+    entry: ['1,000 checks included', `${formatCurrency(0.32, balance.currency)} per credit`, 'Best for smaller teams'],
+    growth: ['2,500 checks included', `${formatCurrency(0.29, balance.currency)} per credit`, 'Good for initial rollout'],
+    team: ['5,000 checks included', `${formatCurrency(0.27, balance.currency)} per credit`, 'Recommended for active teams'],
+    high: ['10,000 checks included', `${formatCurrency(0.25, balance.currency)} per credit`, 'Better for multi-location usage'],
+    scale: ['10,000+ checks', `${formatCurrency(0.23, balance.currency)} blended rate`, 'Custom rollout and support'],
   }
+  const onboardingReviews = [
+    {
+      quote: 'Link Scanner became the default check before opening supplier URLs.',
+      author: 'Regional operations lead',
+    },
+    {
+      quote: 'Document Verification cut manual review time for compliance teams.',
+      author: 'Business admin pilot',
+    },
+    {
+      quote: 'Credit pricing made rollout easier to forecast across locations.',
+      author: 'Finance manager',
+    },
+  ]
 
   const getTierLabel = (tierId: UsageTierId) => {
     if (tierId === 'entry') {
-      return 'Entry'
+      return 'Starter'
+    }
+
+    if (tierId === 'growth') {
+      return 'Growth'
     }
 
     if (tierId === 'team') {
       return 'Team'
+    }
+
+    if (tierId === 'high') {
+      return 'Volume'
     }
 
     return 'Scale'
@@ -63,7 +97,7 @@ export function OnboardingPage() {
       return 'Included'
     }
 
-    return `${formatCurrency(module.creditCost * balance.creditUnitPrice, balance.currency)} / ${module.billingUnit}`
+    return `${formatCurrency(module.creditCost * selectedRate, balance.currency)} / ${module.billingUnit}`
   }
 
   useEffect(() => {
@@ -128,7 +162,7 @@ export function OnboardingPage() {
               </div>
               <div className="summary-block">
                 <span>{t('language')}</span>
-                <strong>{supportedLanguages.find((language) => language.code === draft.language)?.nativeLabel}</strong>
+                <strong>{selectedLanguageLabel}</strong>
               </div>
               <div className="summary-block">
                 <span>{t('theme')}</span>
@@ -161,12 +195,16 @@ export function OnboardingPage() {
                     <strong>$290 / month</strong>
                   </div>
                   <div className="mini-highlight-card accent-card-green">
-                    <span>{t('usageTier')}</span>
-                    <strong>{selectedUsageTier.name}</strong>
+                    <span>{t('pricingSummary')}</span>
+                    <strong>Volume-based credits</strong>
                   </div>
                   <div className="mini-highlight-card accent-card-orange">
                     <span>{t('navEmployees')}</span>
-                    <strong>Mobile invite only</strong>
+                    <strong>Invite here, join on mobile</strong>
+                  </div>
+                  <div className="mini-highlight-card accent-card-blue">
+                    <span>{t('navModules')}</span>
+                    <strong>{enabledModulesCount} active modules</strong>
                   </div>
                 </div>
               </div>
@@ -238,21 +276,118 @@ export function OnboardingPage() {
                   ))}
                 </div>
 
-                <Card title={t('onboardingPricingExamples')} subtitle={t('onboardingPricingChangeLater')}>
-                  <div className="module-credit-grid">
-                    {sampleModules.map((module) => (
-                      <div key={module.id} className="module-credit-card">
-                        <strong>{module.name}</strong>
-                        <span>{module.usageLabel}</span>
-                        <span>{getModuleExampleCost(module)}</span>
+                <Card title={t('pricingSummary')} subtitle="Selected volume and effective rate">
+                  <div className="pricing-strip">
+                    <div className="pricing-strip-item">
+                      <span className="meta-label">Volume</span>
+                      <strong>{selectedUsageTier.name}</strong>
+                    </div>
+                    <div className="pricing-strip-item">
+                      <span className="meta-label">Estimated prepaid amount</span>
+                      <strong>{selectedUsageTier.priceLabel}</strong>
+                    </div>
+                    <div className="pricing-strip-item">
+                      <span className="meta-label">Effective rate</span>
+                      <strong>{selectedUsageTier.billingNote}</strong>
+                    </div>
+                    <div className="pricing-strip-item">
+                      <span className="meta-label">Best for</span>
+                      <strong>{selectedUsageTier.bestFor}</strong>
+                    </div>
+                  </div>
+                </Card>
+
+                <div className="module-section-grid">
+                  <Card title={t('onboardingPricingExamples')} subtitle={t('onboardingPricingChangeLater')}>
+                    <div className="module-credit-grid">
+                      {sampleModules.map((module) => (
+                        <div key={module.id} className="module-credit-card">
+                          <strong>{module.name}</strong>
+                          <span>{module.usageLabel}</span>
+                          <span>{getModuleExampleCost(module)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+
+                  <Card title={t('onboardingReviewsTitle')} subtitle={t('onboardingReviewsSubtitle')}>
+                    <div className="review-grid">
+                      {onboardingReviews.map((review) => (
+                        <div key={review.quote} className="review-card">
+                          <p className="review-quote">{review.quote}</p>
+                          <span className="review-meta">{review.author}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </div>
+              </div>
+            ) : null}
+
+            {step === 2 ? (
+              <div className="onboarding-step-layout onboarding-form-layout">
+                <Card title={t('onboardingPaymentTitle')} subtitle={t('onboardingPaymentSubtitle')}>
+                  <div className="billing-setup-grid">
+                    <div className="billing-provider-banner">
+                      <div className="billing-provider-copy">
+                        <div className="billing-provider-top">
+                          <Badge tone="info">Stripe</Badge>
+                          <span className="meta-label">Preview only</span>
+                        </div>
+                        <strong>Visa ending 4242</strong>
+                        <span className="field-hint">{t('onboardingPaymentLater')}</span>
                       </div>
-                    ))}
+                      <Button variant="secondary" onClick={() => setPaymentPreviewOpen(true)}>
+                        {t('previewStripeCheckout')}
+                      </Button>
+                    </div>
+
+                    <div className="billing-mode-section">
+                      <div className="billing-section-head">
+                        <strong>{t('paymentMode')}</strong>
+                        <span className="field-hint">Choose how credits refill after launch.</span>
+                      </div>
+                      <SegmentedControl
+                        value={billingMode}
+                        onChange={setBillingMode}
+                        options={[
+                          { label: t('autoTopUp'), value: 'auto-top-up' },
+                          { label: t('manualTopUp'), value: 'manual-top-up' },
+                          { label: t('monthlyInvoice'), value: 'monthly-invoice' },
+                        ]}
+                      />
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="setup-side-card" title={t('pricingSummary')} subtitle="Estimated monthly start">
+                  <div className="summary-list compact-summary-list">
+                    <div className="summary-row compact-row">
+                      <span className="row-title">{t('workspaceFee')}</span>
+                      <span className="row-meta">{formatCurrency(balance.workspaceFee, balance.currency)} / month</span>
+                    </div>
+                    <div className="summary-row compact-row">
+                      <span className="row-title">{t('usageTier')}</span>
+                      <span className="row-meta">{selectedUsageTier.name}</span>
+                    </div>
+                    <div className="summary-row compact-row">
+                      <span className="row-title">Estimated usage</span>
+                      <span className="row-meta">{selectedUsageTier.priceLabel}</span>
+                    </div>
+                    <div className="summary-row compact-row">
+                      <span className="row-title">{t('creditRate')}</span>
+                      <span className="row-meta">{formatCurrency(selectedRate, balance.currency)} / credit</span>
+                    </div>
+                    <div className="summary-row compact-row">
+                      <span className="row-title">{t('paymentMode')}</span>
+                      <span className="row-meta">{paymentModeLabel}</span>
+                    </div>
                   </div>
                 </Card>
               </div>
             ) : null}
 
-            {step === 2 ? (
+            {step === 3 ? (
               <div className="onboarding-step-layout onboarding-form-layout">
                 <div className="form-grid two-col">
                   <InputField label={t('companyName')} value={draft.companyName} onChange={(event) => setDraft((current) => ({ ...current, companyName: event.target.value }))} />
@@ -283,7 +418,7 @@ export function OnboardingPage() {
               </div>
             ) : null}
 
-            {step === 3 ? (
+            {step === 4 ? (
               <div className="page-stack compact-stack">
                 <div className="invite-toolbar invite-toolbar-refined">
                   <InputField label="Employee email" value={inviteInput} onChange={(event) => setInviteInput(event.target.value)} placeholder="employee@company.com" />
@@ -321,14 +456,14 @@ export function OnboardingPage() {
                       <div className="empty-inline-state">No employees added yet.</div>
                     )}
                   </div>
-                  <button type="button" className="text-link" onClick={() => setStep(4)}>
+                  <button type="button" className="text-link" onClick={() => setStep(5)}>
                     {t('onboardingSkip')}
                   </button>
                 </Card>
               </div>
             ) : null}
 
-            {step === 4 ? (
+            {step === 5 ? (
               <div className="onboarding-step-layout onboarding-form-layout">
                 <Card title={t('theme')} subtitle="Applies to the console">
                   <SegmentedControl
@@ -340,25 +475,19 @@ export function OnboardingPage() {
                     ]}
                   />
                 </Card>
-                <Card title={t('language')} subtitle={t('localizationReady')}>
-                  <div className="language-option-grid">
+                <Card title={t('language')} subtitle="Arabic switches RTL automatically.">
+                  <SelectField label={t('language')} value={draft.language} onChange={(event) => setDraft((current) => ({ ...current, language: event.target.value as OnboardingDraft['language'] }))}>
                     {supportedLanguages.map((language) => (
-                      <button
-                        key={language.code}
-                        type="button"
-                        className={language.code === draft.language ? 'language-option language-option-active' : 'language-option'}
-                        onClick={() => setDraft((current) => ({ ...current, language: language.code }))}
-                      >
-                        <strong>{language.nativeLabel}</strong>
-                        <span className="field-hint">{language.label}</span>
-                      </button>
+                      <option key={language.code} value={language.code}>
+                        {language.nativeLabel}
+                      </option>
                     ))}
-                  </div>
+                  </SelectField>
                 </Card>
               </div>
             ) : null}
 
-            {step === 5 ? (
+            {step === 6 ? (
               <div className="onboarding-step-layout onboarding-finish-layout">
                 <div className="finish-hero-card">
                   <h2>{t('onboardingFinishTitle')}</h2>
@@ -367,10 +496,10 @@ export function OnboardingPage() {
                     <div>{draft.companyName}</div>
                     <div>{t('onboardingEmployeesInvited', { count: draft.invitedEmails.length })}</div>
                     <div>{t('onboardingSelectedTheme', { value: themeLabel })}</div>
-                    <div>{t('onboardingSelectedLanguage', { value: supportedLanguages.find((item) => item.code === draft.language)?.nativeLabel ?? draft.language })}</div>
+                    <div>{t('onboardingSelectedLanguage', { value: selectedLanguageLabel })}</div>
                   </div>
                 </div>
-                <Card className="setup-side-card" title="Pricing" subtitle="Selected usage model">
+                <Card className="setup-side-card" title="Pricing" subtitle="Selected billing setup">
                   <div className="summary-list compact-summary-list">
                     <div className="summary-row compact-row">
                       <span className="row-title">{t('usageTier')}</span>
@@ -379,6 +508,18 @@ export function OnboardingPage() {
                     <div className="summary-row compact-row">
                       <span className="row-title">{t('pricingSummary')}</span>
                       <span className="row-meta">{selectedUsageTier.priceLabel}</span>
+                    </div>
+                    <div className="summary-row compact-row">
+                      <span className="row-title">Estimated usage</span>
+                      <span className="row-meta">{selectedUsageTier.priceLabel}</span>
+                    </div>
+                    <div className="summary-row compact-row">
+                      <span className="row-title">{t('creditRate')}</span>
+                      <span className="row-meta">{formatCurrency(selectedRate, balance.currency)} / credit</span>
+                    </div>
+                    <div className="summary-row compact-row">
+                      <span className="row-title">{t('paymentMode')}</span>
+                      <span className="row-meta">{paymentModeLabel}</span>
                     </div>
                   </div>
                 </Card>
@@ -394,6 +535,16 @@ export function OnboardingPage() {
           </div>
         </div>
       </Card>
+
+      <StripePreviewModal
+        open={paymentPreviewOpen}
+        onClose={() => setPaymentPreviewOpen(false)}
+        workspaceFee={`${formatCurrency(balance.workspaceFee, balance.currency)} / month`}
+        usageTier={selectedUsageTier.name}
+        usagePrice={selectedUsageTier.priceLabel}
+        paymentMode={paymentModeLabel}
+        creditRate={`${formatCurrency(selectedRate, balance.currency)} / credit`}
+      />
     </div>
   )
 }

@@ -5,7 +5,7 @@ export type UILanguage = 'en' | 'fr' | 'hi' | 'nl' | 'ar' | 'es' | 'de' | 'it' |
 export type AnalyticsRange = '7d' | '30d' | '90d' | 'custom'
 export type ModuleStatus = 'Included' | 'Add-on' | 'Coming soon'
 export type ModuleTier = 'Core' | 'Advanced' | 'Enterprise'
-export type UsageTierId = 'entry' | 'team' | 'scale'
+export type UsageTierId = 'entry' | 'growth' | 'team' | 'high' | 'scale'
 
 export interface Employee {
   id: string
@@ -61,6 +61,7 @@ export interface UsageTier {
   description: string
   bestFor: string
   checksIncluded: number | null
+  creditRate: number | null
   highlight?: boolean
 }
 

@@ -273,6 +273,8 @@ export function PrototypeProvider({ children }: { children: ReactNode }) {
         usageTierId: draft.selectedUsageTier,
         monthlyAllowance:
           usageTiers.find((tier) => tier.id === draft.selectedUsageTier)?.checksIncluded ?? current.monthlyAllowance,
+        creditUnitPrice:
+          usageTiers.find((tier) => tier.id === draft.selectedUsageTier)?.creditRate ?? current.creditUnitPrice,
       }))
       setThemeMode(draft.theme)
       setUiLanguage(draft.language)

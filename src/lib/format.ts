@@ -18,10 +18,12 @@ export function formatNumber(value: number) {
 }
 
 export function formatCurrency(value: number, currency = 'USD') {
+  const fractionalDigits = Math.abs(value) < 1 ? 2 : 0
   return new Intl.NumberFormat(resolveLocale(), {
     style: 'currency',
     currency,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: fractionalDigits,
+    maximumFractionDigits: fractionalDigits,
   }).format(value)
 }
 

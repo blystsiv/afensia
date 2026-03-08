@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '../components/dataTable'
+import { StripePreviewModal } from '../components/stripePreviewModal'
 import { Badge, Button, Card, EmptyState, PageHeader, SegmentedControl, SkeletonBlock, StatCard } from '../components/ui'
 import { usePrototype } from '../context/PrototypeContext'
 import { formatCurrency, formatDate, formatNumber } from '../lib/format'
 import { useSimulatedLoading } from '../lib/useSimulatedLoading'
-import type { SecurityModule } from '../types'
+import type { SecurityModule, UsageTierId } from '../types'
 
 type BillingMode = 'auto-top-up' | 'manual-top-up' | 'monthly-invoice'
-type CreditPackId = '1000' | '5000' | '10000' | 'custom'
 
 function ModulesSkeleton() {
   return (
@@ -64,47 +64,17 @@ function resolveCreditLabel(module: SecurityModule) {
 }
 
 export function ModulesPage() {
-  const { modules, balance, showToast, t } = usePrototype()
+  const { modules, balance, usageTiers, showToast, t } = usePrototype()
   const loading = useSimulatedLoading('modules-console', 260)
   const [billingMode, setBillingMode] = useState<BillingMode>('auto-top-up')
-  const [selectedPackId, setSelectedPackId] = useState<CreditPackId>('5000')
+  const [selectedTierId, setSelectedTierId] = useState<UsageTierId>(balance.usageTierId)
+  const [stripePreviewOpen, setStripePreviewOpen] = useState(false)
 
   const purchasedAddOns = useMemo(() => modules.filter((module) => module.status === 'Add-on' && module.enabled).length, [modules])
   const includedModules = useMemo(() => modules.filter((module) => module.status === 'Included').length, [modules])
   const usagePercentage = Math.min(100, (balance.usedCredits / Math.max(balance.monthlyAllowance, 1)) * 100)
-
-  const creditPacks = useMemo(
-    () => [
-      {
-        id: '1000' as const,
-        title: '1,000 credits',
-        priceLabel: formatCurrency(1000 * balance.creditUnitPrice, balance.currency),
-        helper: 'Pilot teams',
-      },
-      {
-        id: '5000' as const,
-        title: '5,000 credits',
-        priceLabel: formatCurrency(5000 * balance.creditUnitPrice * 0.96, balance.currency),
-        helper: 'Most common',
-        recommended: true,
-      },
-      {
-        id: '10000' as const,
-        title: '10,000 credits',
-        priceLabel: formatCurrency(10000 * balance.creditUnitPrice * 0.92, balance.currency),
-        helper: 'Lower blended rate',
-      },
-      {
-        id: 'custom' as const,
-        title: 'Custom volume',
-        priceLabel: 'Custom quote',
-        helper: 'High-volume rollout',
-      },
-    ],
-    [balance.creditUnitPrice, balance.currency],
-  )
-
-  const selectedPack = creditPacks.find((pack) => pack.id === selectedPackId) ?? creditPacks[1]
+  const selectedTier = usageTiers.find((tier) => tier.id === selectedTierId) ?? usageTiers[0]
+  const selectedRate = selectedTier.creditRate ?? balance.creditUnitPrice
 
   const pricingExamples = useMemo(
     () =>
@@ -115,9 +85,14 @@ export function ModulesPage() {
         .map((module) => ({
           id: module.id,
           name: module.name,
-          cost: resolveCreditLabel(module),
+          cost:
+            module.creditCost === null
+              ? 'Pricing later'
+              : module.creditCost === 0
+                ? 'Included'
+                : `${formatCurrency(module.creditCost * selectedRate, balance.currency)} / ${module.billingUnit}`,
         })),
-    [modules],
+    [balance.currency, modules, selectedRate],
   )
 
   const estimatedRows = useMemo(
@@ -130,10 +105,10 @@ export function ModulesPage() {
             ? 'Pricing later'
             : module.creditCost === 0
               ? 'Included in workspace access'
-              : `${formatCurrency(module.creditCost * balance.creditUnitPrice, balance.currency)} / ${module.billingUnit}`,
+              : `${formatCurrency(module.creditCost * selectedRate, balance.currency)} / ${module.billingUnit}`,
         statusDisplay: resolveModuleStatus(module),
       })),
-    [balance.creditUnitPrice, balance.currency, modules],
+    [balance.currency, modules, selectedRate],
   )
 
   const columns = useMemo<ColumnDef<(typeof estimatedRows)[number]>[]>(
@@ -181,7 +156,7 @@ export function ModulesPage() {
       <PageHeader title="Modules & pricing" description="Credits, billing, and module costs." />
 
       <section className="stats-grid four-up">
-        <StatCard label={t('creditRate')} value={`${formatCurrency(balance.creditUnitPrice, balance.currency)} / credit`} meta="Applied to metered checks" />
+        <StatCard label={t('creditRate')} value={`${formatCurrency(selectedRate, balance.currency)} / credit`} meta="Applied to metered checks" />
         <StatCard label={t('workspaceFee')} value={`${formatCurrency(balance.workspaceFee, balance.currency)} / month`} meta="Base workspace access" />
         <StatCard label={t('creditAllowance')} value={formatNumber(balance.monthlyAllowance)} meta={`${formatNumber(balance.usedCredits)} used this month`} />
         <StatCard label={t('remainingBalance')} value={formatCurrency(balance.remainingBalance, balance.currency)} meta={`${formatNumber(purchasedAddOns)} active add-ons`} />
@@ -199,7 +174,7 @@ export function ModulesPage() {
                 <strong>Visa ending 4242</strong>
                 <span className="field-hint">Ready for credit top-ups and monthly workspace charges.</span>
               </div>
-              <Button variant="secondary" onClick={() => showToast('Stripe billing', 'Stripe setup is mocked in this prototype.', 'info')}>
+              <Button variant="secondary" onClick={() => setStripePreviewOpen(true)}>
                 {t('connectStripe')}
               </Button>
             </div>
@@ -221,19 +196,19 @@ export function ModulesPage() {
             </div>
 
             <div className="credit-pack-grid">
-              {creditPacks.map((pack) => (
+              {usageTiers.map((tier) => (
                 <button
-                  key={pack.id}
+                  key={tier.id}
                   type="button"
-                  className={pack.id === selectedPackId ? 'credit-pack-card credit-pack-card-active' : 'credit-pack-card'}
-                  onClick={() => setSelectedPackId(pack.id)}
+                  className={tier.id === selectedTierId ? 'credit-pack-card credit-pack-card-active' : 'credit-pack-card'}
+                  onClick={() => setSelectedTierId(tier.id)}
                 >
                   <div className="credit-pack-top">
-                    <strong>{pack.title}</strong>
-                    {pack.recommended ? <Badge tone="info">Recommended</Badge> : null}
+                    <strong>{tier.name}</strong>
+                    {tier.highlight ? <Badge tone="info">Recommended</Badge> : null}
                   </div>
-                  <div className="credit-pack-price">{pack.priceLabel}</div>
-                  <div className="credit-pack-helper">{pack.helper}</div>
+                  <div className="credit-pack-price">{tier.priceLabel}</div>
+                  <div className="credit-pack-helper">{tier.billingNote}</div>
                 </button>
               ))}
             </div>
@@ -243,7 +218,7 @@ export function ModulesPage() {
                 onClick={() =>
                   showToast(
                     'Credits ready',
-                    `${selectedPack.title} was prepared for a mock checkout flow.`,
+                    `${selectedTier.name} was prepared for a mock checkout flow.`,
                     'success',
                   )
                 }
@@ -264,8 +239,16 @@ export function ModulesPage() {
               <span className="row-meta">{formatCurrency(balance.workspaceFee, balance.currency)} / month</span>
             </div>
             <div className="summary-row compact-row">
-              <span className="row-title">Selected credits</span>
-              <span className="row-meta">{selectedPack.title}</span>
+              <span className="row-title">{t('usageTier')}</span>
+              <span className="row-meta">{selectedTier.name}</span>
+            </div>
+            <div className="summary-row compact-row">
+              <span className="row-title">Estimated usage</span>
+              <span className="row-meta">{selectedTier.priceLabel}</span>
+            </div>
+            <div className="summary-row compact-row">
+              <span className="row-title">{t('creditRate')}</span>
+              <span className="row-meta">{formatCurrency(selectedRate, balance.currency)} / credit</span>
             </div>
             <div className="summary-row compact-row">
               <span className="row-title">{t('paymentMode')}</span>
@@ -322,6 +305,16 @@ export function ModulesPage() {
           <EmptyState title="No modules" description="Module pricing will appear here." />
         )}
       </Card>
+
+      <StripePreviewModal
+        open={stripePreviewOpen}
+        onClose={() => setStripePreviewOpen(false)}
+        workspaceFee={`${formatCurrency(balance.workspaceFee, balance.currency)} / month`}
+        usageTier={selectedTier.name}
+        usagePrice={selectedTier.priceLabel}
+        paymentMode={billingMode === 'auto-top-up' ? t('autoTopUp') : billingMode === 'manual-top-up' ? t('manualTopUp') : t('monthlyInvoice')}
+        creditRate={`${formatCurrency(selectedRate, balance.currency)} / credit`}
+      />
     </div>
   )
 }

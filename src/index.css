@@ -979,7 +979,7 @@ strong {
 
 .credit-pack-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
 }
 
@@ -1032,6 +1032,48 @@ strong {
 
 .pricing-example-row + .pricing-example-row {
   border-block-start: 1px solid var(--border);
+}
+
+.stripe-preview-grid,
+.stripe-preview-fields {
+  display: grid;
+  gap: 16px;
+}
+
+.stripe-preview-grid {
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  align-items: start;
+}
+
+.stripe-preview-panel,
+.stripe-summary-card {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+}
+
+.stripe-preview-head,
+.stripe-preview-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.stripe-preview-field {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.stripe-preview-row > .stripe-preview-field {
+  flex: 1;
 }
 
 .avatar {
@@ -1511,7 +1553,7 @@ strong {
 }
 
 .onboarding-welcome-panel {
-  grid-template-columns: minmax(0, 1.25fr) minmax(240px, 0.75fr);
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.9fr);
 }
 
 .welcome-hero-card,
@@ -1543,6 +1585,7 @@ strong {
 
 .welcome-side-grid {
   gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .mini-highlight-card {
@@ -1774,33 +1817,36 @@ strong {
 }
 
 .language-option-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.language-option {
+.review-grid {
   display: grid;
-  gap: 6px;
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-subtle);
-  text-align: start;
-  cursor: pointer;
-  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
-}
-
-.language-option-active {
-  border-color: var(--accent);
-  background: var(--surface-highlight);
-  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08);
-}
-
-.settings-language-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
 }
 
 .onboarding-actions {
   margin-block-start: 6px;
+}
+
+.review-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+}
+
+.review-quote {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.review-meta {
+  font-size: 0.82rem;
+  color: var(--text-soft);
 }
 
 .volume-selector-shell {
@@ -1826,7 +1872,7 @@ strong {
 
 .volume-scale-labels {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 12px;
 }
 
@@ -1896,7 +1942,7 @@ strong {
 
 .pricing-card-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 16px;
 }
 
@@ -2248,7 +2294,6 @@ strong {
   .module-section-grid,
   .module-grid-compact,
   .overview-summary-grid,
-  .pricing-card-grid,
   .module-credit-grid,
   .feature-grid-wide,
   .console-meta-grid,
@@ -2257,19 +2302,25 @@ strong {
   .analytics-grid-dashboard,
   .analytics-grid-bottom,
   .onboarding-step-layout,
-  .language-option-grid,
-  .settings-language-grid,
   .plan-grid,
   .usage-tier-grid,
-  .volume-scale-labels,
   .company-profile-grid,
   .pricing-rule-strip,
   .pricing-strip {
     grid-template-columns: 1fr;
   }
 
-  .credit-pack-grid {
+  .credit-pack-grid,
+  .pricing-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .welcome-side-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stripe-preview-grid {
+    grid-template-columns: 1fr;
   }
 
   .analytics-card-wide,
@@ -2302,7 +2353,8 @@ strong {
   .two-col,
   .feature-grid-wide,
   .plan-grid,
-  .usage-tier-grid {
+  .usage-tier-grid,
+  .welcome-side-grid {
     grid-template-columns: 1fr;
   }
 
@@ -2337,12 +2389,15 @@ strong {
 
   .billing-provider-banner,
   .billing-section-head,
-  .pricing-example-row {
+  .pricing-example-row,
+  .stripe-preview-head,
+  .stripe-preview-row {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .credit-pack-grid {
+  .credit-pack-grid,
+  .pricing-card-grid {
     grid-template-columns: 1fr;
   }
 
