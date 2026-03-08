@@ -5,6 +5,7 @@ import { CreateAccountPage, ForgotPasswordPage, SignInPage } from './pages/AuthP
 import { CompanyPage } from './pages/CompanyPage'
 import { EmployeesPage } from './pages/EmployeesPage'
 import { ModulesPage } from './pages/ModulesPage'
+import { NotFoundPage } from './pages/NotFoundPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { OverviewPage } from './pages/OverviewPage'
 import { SettingsPage } from './pages/SettingsPage'
@@ -31,7 +32,7 @@ function App() {
             <Route path="settings" element={<SettingsPage />} />
           </Route>
           <Route path="/" element={<Navigate to="/signin" replace />} />
-          <Route path="*" element={<Navigate to="/signin" replace />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </PrototypeProvider>

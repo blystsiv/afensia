@@ -342,6 +342,26 @@ strong {
   margin-block-start: 4px;
 }
 
+.not-found-card {
+  display: grid;
+  gap: 20px;
+}
+
+.not-found-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: 14px;
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.not-found-actions {
+  margin-block-start: 4px;
+}
+
 .text-link {
   color: var(--accent);
   font-weight: 500;
