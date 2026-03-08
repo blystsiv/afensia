@@ -1,13 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge, Button, Card, InputField, PageHeader, SegmentedControl, SelectField } from '../components/ui'
 import { usePrototype } from '../context/PrototypeContext'
-import { createInviteLink } from '../lib/format'
-import type { OnboardingDraft } from '../types'
+import { createInviteLink, formatCurrency } from '../lib/format'
+import type { OnboardingDraft, SecurityModule, UsageTierId } from '../types'
 
 export function OnboardingPage() {
   const navigate = useNavigate()
-  const { onboardingDraft, completeOnboarding, supportedLanguages, modules, usageTiers, copyInviteValue, t } = usePrototype()
+  const { onboardingDraft, completeOnboarding, supportedLanguages, modules, usageTiers, balance, copyInviteValue, themeMode, t } = usePrototype()
   const [step, setStep] = useState(0)
   const [inviteInput, setInviteInput] = useState('')
   const [draft, setDraft] = useState<OnboardingDraft>(onboardingDraft)
@@ -26,8 +26,53 @@ export function OnboardingPage() {
     [draft.companyName, draft.inviteLink],
   )
   const selectedUsageTier = usageTiers.find((tier) => tier.id === draft.selectedUsageTier) ?? usageTiers[0]
-  const featuredModules = modules.slice(0, 6)
+  const sampleModules = useMemo(
+    () =>
+      modules.filter((module) =>
+        ['link-scanner', 'call-watchdog', 'document-verification', 'deepfake-detection'].includes(module.id),
+      ),
+    [modules],
+  )
   const themeLabel = draft.theme === 'light' ? t('lightMode') : t('darkMode')
+  const selectedUsageIndex = Math.max(0, usageTiers.findIndex((tier) => tier.id === draft.selectedUsageTier))
+  const usageProgress = usageTiers.length > 1 ? (selectedUsageIndex / (usageTiers.length - 1)) * 100 : 0
+  const tierFeatures: Record<UsageTierId, string[]> = {
+    entry: ['Core link, QR, and message checks', '1,000 included credits', 'Best for smaller teams'],
+    team: ['Daily team coverage', '5,000 included credits', 'Lower cost per credit'],
+    scale: ['Custom volume and rollout', 'Large usage allowance', 'Best for distributed teams'],
+  }
+
+  const getTierLabel = (tierId: UsageTierId) => {
+    if (tierId === 'entry') {
+      return 'Entry'
+    }
+
+    if (tierId === 'team') {
+      return 'Team'
+    }
+
+    return 'Scale'
+  }
+
+  const getModuleExampleCost = (module: SecurityModule) => {
+    if (module.creditCost === null) {
+      return 'Pricing later'
+    }
+
+    if (module.creditCost === 0) {
+      return 'Included'
+    }
+
+    return `${formatCurrency(module.creditCost * balance.creditUnitPrice, balance.currency)} / ${module.billingUnit}`
+  }
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = draft.theme
+
+    return () => {
+      document.documentElement.dataset.theme = themeMode
+    }
+  }, [draft.theme, themeMode])
 
   const addInvite = () => {
     const email = inviteInput.trim().toLowerCase()
@@ -129,40 +174,81 @@ export function OnboardingPage() {
 
             {step === 1 ? (
               <div className="page-stack compact-stack">
-                <div className="feature-grid feature-grid-wide feature-grid-colored compact-feature-grid">
-                  {featuredModules.map((module) => (
-                    <div key={module.id} className="feature-tile feature-tile-colored compact-feature-tile">
-                      <div className="feature-tile-head">
-                        <strong>{module.name}</strong>
-                        <Badge tone={module.status === 'Included' ? 'success' : module.status === 'Add-on' ? 'warning' : 'info'}>
-                          {module.status}
-                        </Badge>
-                      </div>
-                      <div className="module-pricing-line compact-module-pricing-line">
-                        <span>{module.priceLabel}</span>
-                        <span>{module.usageLabel}</span>
-                      </div>
+                <div className="volume-selector-shell">
+                  <div className="volume-selector-copy">
+                    <h3>{t('onboardingVolumeQuestion')}</h3>
+                    <p>{t('onboardingVolumeHelper')}</p>
+                  </div>
+                  <div className="volume-scale">
+                    <div className="volume-scale-labels">
+                      {usageTiers.map((tier) => (
+                        <button
+                          key={tier.id}
+                          type="button"
+                          className={tier.id === draft.selectedUsageTier ? 'volume-scale-label volume-scale-label-active' : 'volume-scale-label'}
+                          onClick={() => setDraft((current) => ({ ...current, selectedUsageTier: tier.id }))}
+                        >
+                          {tier.name}
+                        </button>
+                      ))}
                     </div>
-                  ))}
+                    <div className="volume-scale-track" aria-hidden="true">
+                      <span className="volume-scale-line" />
+                      <span className="volume-scale-progress" style={{ width: `${usageProgress}%` }} />
+                      {usageTiers.map((tier, index) => (
+                        <button
+                          key={tier.id}
+                          type="button"
+                          className={tier.id === draft.selectedUsageTier ? 'volume-scale-dot volume-scale-dot-active' : 'volume-scale-dot'}
+                          style={{ left: `${(index / Math.max(usageTiers.length - 1, 1)) * 100}%` }}
+                          onClick={() => setDraft((current) => ({ ...current, selectedUsageTier: tier.id }))}
+                          aria-label={tier.name}
+                        />
+                      ))}
+                    </div>
+                    <div className="volume-scale-selection">{selectedUsageTier.name}</div>
+                  </div>
                 </div>
-                <div className="usage-tier-grid usage-tier-grid-compact">
+
+                <div className="pricing-card-grid">
                   {usageTiers.map((tier) => (
                     <button
                       key={tier.id}
                       type="button"
-                      className={tier.id === draft.selectedUsageTier ? 'usage-tier-card usage-tier-card-active' : 'usage-tier-card'}
+                      className={tier.id === draft.selectedUsageTier ? 'pricing-tier-card pricing-tier-card-active' : 'pricing-tier-card'}
                       onClick={() => setDraft((current) => ({ ...current, selectedUsageTier: tier.id }))}
                     >
-                      <div className="usage-tier-topline">
-                        <strong>{tier.name}</strong>
-                        {tier.highlight ? <Badge tone="info">Most used</Badge> : null}
+                      <div className="pricing-tier-top">
+                        <div>
+                          <div className="pricing-tier-name">{getTierLabel(tier.id)}</div>
+                          <div className="pricing-tier-volume">{tier.name}</div>
+                        </div>
+                        {tier.highlight ? <Badge tone="info">Recommended</Badge> : null}
                       </div>
-                      <div className="usage-tier-price">{tier.priceLabel}</div>
-                      <div className="row-meta">{tier.billingNote}</div>
-                      <div className="usage-tier-foot">{tier.bestFor}</div>
+                      <div className="pricing-tier-price">{tier.priceLabel}</div>
+                      <div className="pricing-tier-note">{tier.billingNote}</div>
+                      <div className="pricing-tier-list">
+                        {tierFeatures[tier.id].map((item) => (
+                          <div key={item} className="pricing-tier-list-item">
+                            {item}
+                          </div>
+                        ))}
+                      </div>
                     </button>
                   ))}
                 </div>
+
+                <Card title={t('onboardingPricingExamples')} subtitle={t('onboardingPricingChangeLater')}>
+                  <div className="module-credit-grid">
+                    {sampleModules.map((module) => (
+                      <div key={module.id} className="module-credit-card">
+                        <strong>{module.name}</strong>
+                        <span>{module.usageLabel}</span>
+                        <span>{getModuleExampleCost(module)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
               </div>
             ) : null}
 
@@ -254,13 +340,17 @@ export function OnboardingPage() {
                     ]}
                   />
                 </Card>
-                <Card title={t('language')} subtitle="All requested languages are available">
+                <Card title={t('language')} subtitle={t('localizationReady')}>
                   <div className="language-option-grid">
                     {supportedLanguages.map((language) => (
-                      <button key={language.code} type="button" className={language.code === draft.language ? 'language-option language-option-active' : 'language-option'} onClick={() => setDraft((current) => ({ ...current, language: language.code }))}>
+                      <button
+                        key={language.code}
+                        type="button"
+                        className={language.code === draft.language ? 'language-option language-option-active' : 'language-option'}
+                        onClick={() => setDraft((current) => ({ ...current, language: language.code }))}
+                      >
                         <strong>{language.nativeLabel}</strong>
-                        <span>{language.label}</span>
-                        <Badge tone={language.dir === 'rtl' ? 'warning' : 'info'}>{language.dir.toUpperCase()}</Badge>
+                        <span className="field-hint">{language.label}</span>
                       </button>
                     ))}
                   </div>

@@ -1,7 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthLayout, DashboardLayout } from './components/layout'
 import { PrototypeProvider } from './context/PrototypeContext'
-import { CreateAccountPage, SignInPage } from './pages/AuthPages'
+import { CreateAccountPage, ForgotPasswordPage, SignInPage } from './pages/AuthPages'
 import { CompanyPage } from './pages/CompanyPage'
 import { EmployeesPage } from './pages/EmployeesPage'
 import { ModulesPage } from './pages/ModulesPage'
@@ -18,6 +18,7 @@ function App() {
           <Route element={<AuthLayout />}>
             <Route path="/signin" element={<SignInPage />} />
             <Route path="/create-account" element={<CreateAccountPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           </Route>
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/app" element={<DashboardLayout />}>

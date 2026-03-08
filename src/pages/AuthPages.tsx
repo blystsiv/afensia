@@ -70,9 +70,9 @@ export function SignInPage() {
           error={errors.password}
         />
         <div className="auth-inline-row">
-          <a href="/forgot" onClick={(event) => event.preventDefault()} className="text-link">
+          <Link to="/forgot-password" className="text-link">
             {t('forgotPassword')}
-          </a>
+          </Link>
         </div>
         <Button type="submit" loading={submitting}>
           {t('signIn')}
@@ -84,6 +84,70 @@ export function SignInPage() {
           {t('createAccount')}
         </Link>
       </div>
+    </AuthCard>
+  )
+}
+
+export function ForgotPasswordPage() {
+  const navigate = useNavigate()
+  const { company, showToast, t } = usePrototype()
+  const [email, setEmail] = useState(company.adminEmail)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState<string | undefined>()
+
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault()
+
+    if (!email.trim()) {
+      setError('Enter your business email.')
+      return
+    }
+
+    setError(undefined)
+    setSubmitting(true)
+    window.setTimeout(() => {
+      setSubmitting(false)
+      setSubmitted(true)
+      showToast('Reset link sent', `Password reset instructions were prepared for ${email}.`, 'success')
+    }, 320)
+  }
+
+  return (
+    <AuthCard title={submitted ? t('resetLinkSentTitle') : t('forgotPasswordTitle')} subtitle={submitted ? t('resetLinkSentSubtitle') : t('forgotPasswordSubtitle')}>
+      {submitted ? (
+        <div className="auth-success-stack">
+          <div className="auth-email-pill">{email}</div>
+          <div className="button-row auth-button-row">
+            <Button onClick={() => navigate('/signin')}>{t('returnToSignIn')}</Button>
+            <Button variant="secondary" onClick={() => setSubmitted(false)}>
+              {t('useAnotherEmail')}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <form className="auth-form" onSubmit={handleSubmit}>
+            <InputField
+              label={t('businessEmail')}
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              error={error}
+            />
+            <Button type="submit" loading={submitting}>
+              {t('sendResetLink')}
+            </Button>
+          </form>
+          <div className="auth-footer-row">
+            <span>{t('alreadyHaveAccount')}</span>
+            <Link to="/signin" className="text-link">
+              {t('returnToSignIn')}
+            </Link>
+          </div>
+        </>
+      )}
     </AuthCard>
   )
 }

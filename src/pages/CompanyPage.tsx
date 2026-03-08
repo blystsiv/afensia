@@ -22,7 +22,7 @@ function CompanySkeleton() {
 }
 
 export function CompanyPage() {
-  const { company, employees, modules, balance, usageTiers, supportedLanguages, uiLanguage, themeMode, saveCompanyProfile, t } = usePrototype()
+  const { company, employees, modules, balance, supportedLanguages, uiLanguage, themeMode, saveCompanyProfile, t } = usePrototype()
   const loading = useSimulatedLoading('company-console', 260)
   const [editing, setEditing] = useState(false)
   const [companyName, setCompanyName] = useState(company.companyName)
@@ -33,7 +33,6 @@ export function CompanyPage() {
   const [linkedIn, setLinkedIn] = useState(company.linkedIn)
   const [adminEmail, setAdminEmail] = useState(company.adminEmail)
   const [description, setDescription] = useState(company.description)
-  const currentUsageTier = usageTiers.find((tier) => tier.id === balance.usageTierId) ?? usageTiers[0]
   const currentLanguage = supportedLanguages.find((language) => language.code === uiLanguage)
   const themeLabel = themeMode === 'light' ? 'Light' : 'Dark'
   const usageProgress = Math.min(100, Math.round((balance.usedCredits / balance.monthlyAllowance) * 100))
@@ -53,7 +52,7 @@ export function CompanyPage() {
       <section className="stats-grid four-up">
         <StatCard label={t('navEmployees')} value={formatNumber(employees.length)} />
         <StatCard label={t('navModules')} value={formatNumber(modules.filter((module) => module.enabled).length)} />
-        <StatCard label={t('usageTier')} value={currentUsageTier.name} />
+        <StatCard label={t('creditRate')} value={`${formatCurrency(balance.creditUnitPrice, balance.currency)} / credit`} />
         <StatCard label={t('remainingBalance')} value={formatCurrency(balance.remainingBalance, balance.currency)} />
       </section>
 
@@ -116,8 +115,8 @@ export function CompanyPage() {
               <span className="row-meta">{themeLabel}</span>
             </div>
             <div className="summary-row compact-row">
-              <span className="row-title">{t('usageTier')}</span>
-              <span className="row-meta">{currentUsageTier.name}</span>
+              <span className="row-title">{t('creditRate')}</span>
+              <span className="row-meta">{formatCurrency(balance.creditUnitPrice, balance.currency)} / credit</span>
             </div>
             <div className="summary-row compact-row">
               <span className="row-title">{t('creditsUsed')}</span>

@@ -12,9 +12,9 @@ export function AuthLayout() {
         <span className="brand-mark">
           <ShieldCheck size={16} />
         </span>
-        <div>
-          <strong>Afensia</strong>
-          <span className="subtle-copy">Business Security Console</span>
+        <div className="brand-copy">
+          <strong className="brand-title">Afensia</strong>
+          <span className="subtle-copy brand-subtitle">Business Security Console</span>
         </div>
       </div>
       <main className="auth-main">
@@ -26,8 +26,7 @@ export function AuthLayout() {
 
 export function DashboardLayout() {
   const navigate = useNavigate()
-  const { company, balance, usageTiers, themeMode, uiLanguage, toasts, dismissToast, t, supportedLanguages } = usePrototype()
-  const currentUsageTier = usageTiers.find((tier) => tier.id === balance.usageTierId)
+  const { company, balance, themeMode, uiLanguage, toasts, dismissToast, t, supportedLanguages } = usePrototype()
   const currentLanguage = supportedLanguages.find((language) => language.code === uiLanguage)
   const themeLabel = themeMode === 'light' ? 'Light' : 'Dark'
   const navigation = [
@@ -47,9 +46,9 @@ export function DashboardLayout() {
             <span className="brand-mark">
               <ShieldCheck size={16} />
             </span>
-            <div>
-              <strong>Afensia</strong>
-              <span className="subtle-copy">Business Security Console</span>
+            <div className="brand-copy">
+              <strong className="brand-title">Afensia</strong>
+              <span className="subtle-copy brand-subtitle">Business Security Console</span>
             </div>
           </div>
 
@@ -61,8 +60,8 @@ export function DashboardLayout() {
               </div>
             </div>
             <div className="sidebar-plan-chip">
-              <span>{t('usageTier')}</span>
-              <strong>{currentUsageTier?.name}</strong>
+              <span>{t('creditRate')}</span>
+              <strong>{formatCurrency(balance.creditUnitPrice, balance.currency)} / credit</strong>
             </div>
             <div className="sidebar-company-stats">
               <div>

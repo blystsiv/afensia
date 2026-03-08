@@ -46,6 +46,8 @@ export interface SecurityModule {
   tier: ModuleTier
   category: string
   availableFrom: UsageTierId | 'addon' | 'future'
+  creditCost: number | null
+  billingUnit: string
   priceLabel: string
   usageLabel: string
   note: string
@@ -121,6 +123,7 @@ export interface AccountBalance {
   workspaceFee: number
   monthlyAllowance: number
   usedCredits: number
+  creditUnitPrice: number
   usageTierId: UsageTierId
   creditModel: string
   renewalDate: string

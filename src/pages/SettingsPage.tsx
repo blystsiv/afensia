@@ -1,6 +1,6 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
-  Badge,
   Button,
   Card,
   CheckboxField,
@@ -16,10 +16,10 @@ import { formatCurrency, formatNumber } from '../lib/format'
 import type { DashboardPreferences, ThemeMode, UILanguage } from '../types'
 
 export function SettingsPage() {
+  const navigate = useNavigate()
   const {
     company,
     supportedLanguages,
-    usageTiers,
     balance,
     dashboardPreferences,
     themeMode,
@@ -29,7 +29,6 @@ export function SettingsPage() {
     saveInterfacePreferences,
     saveDashboardPreferences,
     simulateDangerAction,
-    showToast,
     t,
   } = usePrototype()
   const [adminName, setAdminName] = useState(company.adminName)
@@ -40,7 +39,6 @@ export function SettingsPage() {
   const [language, setLanguage] = useState<UILanguage>(uiLanguage)
   const [visibility, setVisibility] = useState<DashboardPreferences>(dashboardPreferences)
   const [dangerOpen, setDangerOpen] = useState(false)
-  const currentUsageTier = usageTiers.find((tier) => tier.id === balance.usageTierId) ?? usageTiers[0]
 
   return (
     <div className="page-stack">
@@ -54,8 +52,8 @@ export function SettingsPage() {
           </div>
           <div className="form-actions align-start compact-actions">
             <Button onClick={() => saveCompanyProfile({ adminName, adminEmail })}>{t('save')}</Button>
-            <Button variant="secondary" onClick={() => showToast('Password reset', 'Reset flow shown in prototype.', 'info')}>
-              {t('sendPasswordReset')}
+            <Button variant="secondary" onClick={() => navigate('/forgot-password')}>
+              {t('sendResetLink')}
             </Button>
           </div>
         </Card>
@@ -75,7 +73,7 @@ export function SettingsPage() {
         </Card>
 
         <Card title={t('languageSettings')} subtitle={t('localizationReady')}>
-          <div className="form-grid two-col">
+          <div className="form-grid single-col">
             <SelectField label={t('language')} value={language} onChange={(event) => setLanguage(event.target.value as UILanguage)}>
               {supportedLanguages.map((item) => (
                 <option key={item.code} value={item.code}>
@@ -83,16 +81,6 @@ export function SettingsPage() {
                 </option>
               ))}
             </SelectField>
-            <InputField label="Direction" value={supportedLanguages.find((item) => item.code === language)?.dir.toUpperCase() ?? 'LTR'} readOnly />
-          </div>
-          <div className="language-option-grid settings-language-grid">
-            {supportedLanguages.map((item) => (
-              <button key={item.code} type="button" className={item.code === language ? 'language-option language-option-active' : 'language-option'} onClick={() => setLanguage(item.code)}>
-                <strong>{item.nativeLabel}</strong>
-                <span>{item.label}</span>
-                <Badge tone={item.dir === 'rtl' ? 'warning' : 'info'}>{item.dir.toUpperCase()}</Badge>
-              </button>
-            ))}
           </div>
           <div className="form-actions align-start compact-actions">
             <Button onClick={() => saveInterfacePreferences({ language, theme })}>{t('save')}</Button>
@@ -106,8 +94,8 @@ export function SettingsPage() {
               <span className="row-meta">{formatCurrency(balance.workspaceFee, balance.currency)}</span>
             </div>
             <div className="summary-row compact-row">
-              <span className="row-title">{t('usageTier')}</span>
-              <span className="row-meta">{currentUsageTier.name}</span>
+              <span className="row-title">{t('creditRate')}</span>
+              <span className="row-meta">{formatCurrency(balance.creditUnitPrice, balance.currency)} / credit</span>
             </div>
             <div className="summary-row compact-row">
               <span className="row-title">{t('creditAllowance')}</span>
