@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '../components/dataTable'
 import { StripePreviewModal } from '../components/stripePreviewModal'
-import { Badge, Button, Card, EmptyState, PageHeader, SegmentedControl, SkeletonBlock, StatCard } from '../components/ui'
+import { Badge, Button, Card, EmptyState, PageHeader, SegmentedControl, SkeletonBlock } from '../components/ui'
 import { usePrototype } from '../context/PrototypeContext'
 import { formatCurrency, formatDate, formatNumber } from '../lib/format'
 import { useSimulatedLoading } from '../lib/useSimulatedLoading'
@@ -13,13 +13,6 @@ type BillingMode = 'auto-top-up' | 'manual-top-up' | 'monthly-invoice'
 function ModulesSkeleton() {
   return (
     <div className="page-stack">
-      <div className="stats-grid four-up">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Card key={index}>
-            <SkeletonBlock lines={3} />
-          </Card>
-        ))}
-      </div>
       <div className="module-pricing-layout">
         <Card>
           <SkeletonBlock lines={8} />
@@ -154,13 +147,6 @@ export function ModulesPage() {
   return (
     <div className="page-stack">
       <PageHeader title="Modules & pricing" description="Credits, billing, and module costs." />
-
-      <section className="stats-grid four-up">
-        <StatCard label={t('creditRate')} value={`${formatCurrency(selectedRate, balance.currency)} / credit`} meta="Applied to metered checks" />
-        <StatCard label={t('workspaceFee')} value={`${formatCurrency(balance.workspaceFee, balance.currency)} / month`} meta="Base workspace access" />
-        <StatCard label={t('creditAllowance')} value={formatNumber(balance.monthlyAllowance)} meta={`${formatNumber(balance.usedCredits)} used this month`} />
-        <StatCard label={t('remainingBalance')} value={formatCurrency(balance.remainingBalance, balance.currency)} meta={`${formatNumber(purchasedAddOns)} active add-ons`} />
-      </section>
 
       <section className="module-pricing-layout">
         <Card title={t('billingSetup')} subtitle={t('billingSetupSubtitle')}>

@@ -77,8 +77,8 @@ export const initialCompany: CompanyProfile = {
   adminEmail: 'avery@northhillbev.com',
   supportContact: 'security@northhillbev.com',
   status: 'Protected',
-  invitationBehavior: 'Email + secure mobile invite link',
-  inviteLinkControls: 'Admins can copy, resend, and manage secure mobile invite links.',
+  invitationBehavior: 'Send email invites from the admin console',
+  inviteLinkControls: 'Admins can send, resend, and revoke invite emails before an employee activates access.',
 }
 
 export const initialBalance: AccountBalance = {
@@ -244,19 +244,16 @@ export const initialModules: SecurityModule[] = [
 export const defaultDashboardPreferences: DashboardPreferences = {
   showModuleBreakdown: true,
   showEmployeeSummary: true,
-  showRiskSummary: true,
-  showUsageSummary: true,
 }
 
 export const initialOnboardingDraft: OnboardingDraft = {
-  companyName: initialCompany.companyName,
-  industry: initialCompany.industry,
-  teamSize: initialCompany.teamSize,
-  countryRegion: initialCompany.countryRegion,
-  website: initialCompany.website,
-  linkedIn: initialCompany.linkedIn,
+  companyName: '',
+  industry: '',
+  teamSize: '',
+  countryRegion: '',
+  website: '',
+  linkedIn: '',
   invitedEmails: [],
-  inviteLink: createInviteLink(initialCompany.companyName),
   theme: 'light',
   language: 'en',
   selectedUsageTier: 'team',

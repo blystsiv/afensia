@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthLayout, DashboardLayout } from './components/layout'
+import { SupportWidget } from './components/supportWidget'
 import { PrototypeProvider } from './context/PrototypeContext'
 import { CreateAccountPage, ForgotPasswordPage, SignInPage } from './pages/AuthPages'
 import { CompanyPage } from './pages/CompanyPage'
@@ -30,10 +31,12 @@ function App() {
             <Route path="analytics" element={<UsageAnalyticsPage />} />
             <Route path="company" element={<CompanyPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
           <Route path="/" element={<Navigate to="/signin" replace />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        <SupportWidget />
       </BrowserRouter>
     </PrototypeProvider>
   )

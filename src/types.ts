@@ -133,8 +133,6 @@ export interface AccountBalance {
 export interface DashboardPreferences {
   showModuleBreakdown: boolean
   showEmployeeSummary: boolean
-  showRiskSummary: boolean
-  showUsageSummary: boolean
 }
 
 export interface OnboardingDraft {
@@ -145,7 +143,6 @@ export interface OnboardingDraft {
   website: string
   linkedIn: string
   invitedEmails: string[]
-  inviteLink: string
   theme: ThemeMode
   language: UILanguage
   selectedUsageTier: UsageTierId

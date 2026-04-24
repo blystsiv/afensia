@@ -108,14 +108,14 @@ export function SettingsPage() {
           </div>
         </Card>
 
-        <Card title={t('invitationSettings')} subtitle="Mobile invite flow">
+        <Card title={t('invitationSettings')} subtitle="Email invite flow">
           <div className="form-grid single-col">
             <SelectField label="Invitation behavior" value={inviteBehavior} onChange={(event) => setInviteBehavior(event.target.value)}>
-              <option>Email + secure mobile invite link</option>
-              <option>Copy invite link first</option>
-              <option>Mobile link only</option>
+              <option>Send email invite automatically</option>
+              <option>Review email invite before sending</option>
+              <option>Email invite only</option>
             </SelectField>
-            <TextareaField label="Link sharing controls" rows={4} value={inviteControls} onChange={(event) => setInviteControls(event.target.value)} />
+            <TextareaField label="Invite controls" rows={4} value={inviteControls} onChange={(event) => setInviteControls(event.target.value)} />
           </div>
           <div className="form-actions align-start compact-actions">
             <Button onClick={() => saveInvitationSettings({ invitationBehavior: inviteBehavior, inviteLinkControls: inviteControls })}>{t('save')}</Button>
@@ -126,8 +126,6 @@ export function SettingsPage() {
           <div className="form-grid single-col">
             <CheckboxField checked={visibility.showModuleBreakdown} onChange={(checked) => setVisibility((current) => ({ ...current, showModuleBreakdown: checked }))} label="Show module breakdown" />
             <CheckboxField checked={visibility.showEmployeeSummary} onChange={(checked) => setVisibility((current) => ({ ...current, showEmployeeSummary: checked }))} label="Show employee summary" />
-            <CheckboxField checked={visibility.showRiskSummary} onChange={(checked) => setVisibility((current) => ({ ...current, showRiskSummary: checked }))} label="Show risk summary" />
-            <CheckboxField checked={visibility.showUsageSummary} onChange={(checked) => setVisibility((current) => ({ ...current, showUsageSummary: checked }))} label="Show pricing summary" />
           </div>
           <div className="form-actions align-start compact-actions">
             <Button onClick={() => saveDashboardPreferences(visibility)}>{t('save')}</Button>

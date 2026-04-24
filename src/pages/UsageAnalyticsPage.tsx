@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import {
   EmployeeRiskChart,
@@ -32,7 +32,7 @@ function AnalyticsSkeleton() {
         ))}
       </div>
       <div className="analytics-grid analytics-grid-bottom">
-        {Array.from({ length: 2 }).map((_, index) => (
+        {Array.from({ length: 1 }).map((_, index) => (
           <Card key={index}>
             <SkeletonBlock lines={8} />
           </Card>
@@ -47,14 +47,6 @@ export function UsageAnalyticsPage() {
   const [range, setRange] = useState<AnalyticsRange>('30d')
   const loading = useSimulatedLoading(`analytics-console-${range}`, 260)
   const snapshot = range === 'custom' ? null : analyticsSnapshots[range]
-
-  const heatMax = useMemo(() => {
-    if (!snapshot) {
-      return 1
-    }
-
-    return Math.max(...snapshot.employeeModuleHeat.flatMap((row) => row.modules.map((module) => module.usage)), 1)
-  }, [snapshot])
 
   const employeeColumns = useMemo<ColumnDef<NonNullable<typeof snapshot>['employeeInsights'][number]>[]>(
     () => [
@@ -159,7 +151,7 @@ export function UsageAnalyticsPage() {
             </Card>
           </section>
 
-          <section className="analytics-grid analytics-grid-bottom">
+          <section>
             <Card title={t('analyticsEmployeeLeaderboard')} subtitle="Who is using Afensia most this period">
               <DataTable
                 data={snapshot.employeeInsights}
@@ -175,34 +167,6 @@ export function UsageAnalyticsPage() {
                   </div>
                 }
               />
-            </Card>
-
-            <Card title={t('analyticsModuleAdoption')} subtitle="Heat map of feature usage by employee">
-              <div className="heatmap-grid">
-                <div className="heatmap-header" />
-                {snapshot.employeeModuleHeat[0]?.modules.map((module) => (
-                  <div key={module.name} className="heatmap-header-cell">
-                    {module.name}
-                  </div>
-                ))}
-                {snapshot.employeeModuleHeat.map((row) => (
-                  <Fragment key={row.name}>
-                    <div key={`${row.name}-label`} className="heatmap-row-label">
-                      {row.name}
-                    </div>
-                    {row.modules.map((module) => {
-                      const ratio = module.usage / heatMax
-                      const level = ratio === 0 ? 0 : ratio < 0.26 ? 1 : ratio < 0.51 ? 2 : ratio < 0.76 ? 3 : 4
-
-                      return (
-                        <div key={`${row.name}-${module.name}`} className={`heat-cell heat-cell-${level}`}>
-                          {formatNumber(module.usage)}
-                        </div>
-                      )
-                    })}
-                  </Fragment>
-                ))}
-              </div>
             </Card>
           </section>
         </>

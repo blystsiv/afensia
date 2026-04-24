@@ -1,8 +1,15 @@
-import { Card, PageHeader, SkeletonBlock, StatCard, Avatar } from '../components/ui'
+import { useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { Avatar, Button, Card, PageHeader, SkeletonBlock, StatCard } from '../components/ui'
 import { UsageTrendChart } from '../components/charts'
 import { usePrototype } from '../context/PrototypeContext'
 import { formatCurrency, formatNumber } from '../lib/format'
 import { useSimulatedLoading } from '../lib/useSimulatedLoading'
+
+interface OverviewLocationState {
+  onboardingComplete?: boolean
+  invitedCount?: number
+}
 
 function OverviewSkeleton() {
   return (
@@ -29,7 +36,10 @@ function OverviewSkeleton() {
 }
 
 export function OverviewPage() {
+  const navigate = useNavigate()
+  const location = useLocation()
   const {
+    company,
     employees,
     modules,
     balance,
@@ -37,52 +47,21 @@ export function OverviewPage() {
     dashboardPreferences,
     t,
   } = usePrototype()
+  const onboardingState = location.state as OverviewLocationState | null
+  const [showLaunchBanner, setShowLaunchBanner] = useState(Boolean(onboardingState?.onboardingComplete))
   const loading = useSimulatedLoading('overview-console', 260)
   const snapshot = analyticsSnapshots['30d']
   const enabledModules = modules.filter((module) => module.enabled)
   const activeEmployees = employees.filter((employee) => employee.status === 'Active')
-  const invitedEmployees = employees.filter((employee) => employee.status === 'Invited')
   const topEmployees = [...activeEmployees].sort((a, b) => b.totalChecks - a.totalChecks).slice(0, 4)
   const topModules = [...enabledModules].sort((a, b) => b.usageCount - a.usageCount).slice(0, 4)
-  const riskRate = ((snapshot.riskyFindings / snapshot.totalChecks) * 100).toFixed(1)
-  const usageProgress = Math.min(100, Math.round((balance.usedCredits / balance.monthlyAllowance) * 100))
+  const invitedCount = onboardingState?.invitedCount ?? 0
 
   if (loading) {
     return <OverviewSkeleton />
   }
 
   const sideBlocks = [
-    dashboardPreferences.showUsageSummary ? (
-      <Card key="usage" title={t('pricingSummary')} subtitle="Current usage and credits">
-        <div className="summary-list compact-summary-list">
-          <div className="summary-row compact-row">
-            <span className="row-title">{t('creditRate')}</span>
-            <span className="row-value">{formatCurrency(balance.creditUnitPrice, balance.currency)} / credit</span>
-          </div>
-          <div className="summary-row compact-row">
-            <span className="row-title">{t('workspaceFee')}</span>
-            <span className="row-meta">{formatCurrency(balance.workspaceFee, balance.currency)} / month</span>
-          </div>
-          <div className="summary-row compact-row">
-            <span className="row-title">{t('creditsUsed')}</span>
-            <span className="row-meta">{formatNumber(balance.usedCredits)} / {formatNumber(balance.monthlyAllowance)}</span>
-          </div>
-          <div className="usage-meter">
-            <div className="usage-meter-head">
-              <span>{usageProgress}% used</span>
-              <strong>{formatNumber(balance.monthlyAllowance - balance.usedCredits)} left</strong>
-            </div>
-            <div className="usage-meter-track">
-              <span style={{ width: `${usageProgress}%` }} />
-            </div>
-          </div>
-          <div className="summary-row compact-row">
-            <span className="row-title">Renewal</span>
-            <span className="row-meta">{balance.renewalDate}</span>
-          </div>
-        </div>
-      </Card>
-    ) : null,
     dashboardPreferences.showModuleBreakdown ? (
       <Card key="modules" title={t('featureUsageBreakdown')} subtitle="Top modules this month">
         <div className="summary-list compact-summary-list">
@@ -116,29 +95,44 @@ export function OverviewPage() {
         </div>
       </Card>
     ) : null,
-    dashboardPreferences.showRiskSummary ? (
-      <Card key="risk" title={t('riskSummary')} subtitle="Current period">
-        <div className="summary-list compact-summary-list">
-          <div className="summary-row compact-row">
-            <span className="row-title">{t('riskyFindings')}</span>
-            <span className="row-value">{formatNumber(snapshot.riskyFindings)}</span>
-          </div>
-          <div className="summary-row compact-row">
-            <span className="row-title">{t('riskRate')}</span>
-            <span className="row-value">{riskRate}%</span>
-          </div>
-          <div className="summary-row compact-row">
-            <span className="row-title">{t('pendingInvites')}</span>
-            <span className="row-value">{formatNumber(invitedEmployees.length)}</span>
-          </div>
-        </div>
-      </Card>
-    ) : null,
   ].filter(Boolean)
 
   return (
     <div className="page-stack">
       <PageHeader title={t('navOverview')} description={t('overviewDescription')} />
+
+      {showLaunchBanner ? (
+        <Card
+          className="dashboard-launch-card"
+          title={`Congratulations, ${company.companyName} is live`}
+          subtitle="Here is how Afensia works once your workspace is up and running."
+          action={
+            <div className="button-row">
+              <Button variant="secondary" size="sm" onClick={() => navigate('/app/employees')}>
+                {invitedCount ? 'Review invites' : 'Invite employees'}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setShowLaunchBanner(false)}>
+                Dismiss
+              </Button>
+            </div>
+          }
+        >
+          <div className="dashboard-launch-grid">
+            <div className="dashboard-launch-item">
+              <span>How it works</span>
+              <strong>Employees use the app to check risky links, QR codes, messages, calls, and documents before acting.</strong>
+            </div>
+            <div className="dashboard-launch-item">
+              <span>What to watch first</span>
+              <strong>Follow invite progress, onboarding activity, and which protection flows your team starts using most.</strong>
+            </div>
+            <div className="dashboard-launch-item">
+              <span>Right now</span>
+              <strong>{invitedCount ? `${invitedCount} invite${invitedCount === 1 ? '' : 's'} queued for activation.` : 'Your workspace is ready for the first employee invites.'}</strong>
+            </div>
+          </div>
+        </Card>
+      ) : null}
 
       <section className="stats-grid overview-stats-grid seven-up">
         <StatCard label={t('totalEmployees')} value={formatNumber(employees.length)} />

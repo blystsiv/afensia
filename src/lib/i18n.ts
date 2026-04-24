@@ -100,7 +100,7 @@ const en = {
   onboardingWelcomeLine4: 'Track usage, credits, and adoption',
   onboardingFeatureTitle: 'Platform coverage',
   onboardingPlanTitle: 'Choose expected usage',
-  onboardingPlanSubtitle: 'Configure pricing, billing, language, and team setup.',
+  onboardingPlanSubtitle: 'Choose a package, set up billing, add company details, and queue team invites.',
   onboardingVolumeQuestion: 'How many security checks will your team run each month?',
   onboardingVolumeHelper: 'Pick a starting monthly volume. You can change it later.',
   onboardingPricingExamples: 'Module pricing examples',

@@ -157,10 +157,10 @@ export function PrototypeProvider({ children }: { children: ReactNode }) {
         companyName: payload.companyName,
         adminEmail: payload.businessEmail,
       }))
-      setOnboardingDraft((current) => ({
-        ...current,
+      setOnboardingDraft({
+        ...initialOnboardingDraft,
         companyName: payload.companyName,
-      }))
+      })
       setOnboardingCompleted(false)
       pushToast('Account created', 'Continue with onboarding to finish setup.', 'success')
     },
